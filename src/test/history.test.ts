@@ -6,6 +6,6 @@ describe("workout badge tally", () => {
     expect(tallyBadge(emptyBadges(), "Good Form", "Go Lower")["Go Lower"]).toBe(1);
   });
   it("does not recount while the status stays the same", () => {
-    expect(tallyBadge(emptyBadges(), "Spine Sagging", "Spine Sagging")["Spine Sagging"]).toBe(0);
+    expect(tallyBadge(emptyBadges(), "Hips Sagging", "Hips Sagging")["Hips Sagging"]).toBe(0);
   });
 });
