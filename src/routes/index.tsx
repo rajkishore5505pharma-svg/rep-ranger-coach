@@ -4,7 +4,7 @@ import { Camera, History, MessageCircle, Pause, Play, RotateCcw, Save, SwitchCam
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { angle, initialRepState, step, type FormStatus, type Pt } from "@/lib/pushup";
+import { angle, hipAlignment, initialRepState, isSideProfile, step, type FormStatus, type Pt } from "@/lib/pushup";
 import { emptyBadges, saveWorkout, tallyBadge } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
@@ -70,6 +70,7 @@ function RageBit() {
   const [reps, setReps] = useState(0);
   const [status, setStatus] = useState<FormStatus>("Get in position");
   const [elbow, setElbow] = useState<number | null>(null);
+  const [hipAngle, setHipAngle] = useState<number | null>(null);
   const [pulse, setPulse] = useState(0);
   const badgesRef = useRef(emptyBadges());
   const startedAtRef = useRef<number | null>(null);
@@ -133,31 +134,49 @@ function RageBit() {
       ctx.clearRect(0, 0, c.width, c.height);
       const pose = lm.detectForVideo(v, performance.now()).landmarks[0];
       if (pose) {
+        const vis = (i: number) => pose[i]?.visibility ?? 0;
+        const left = vis(11) + vis(13) + vis(15) >= vis(12) + vis(14) + vis(16);
+        const [s, e, w, h, an, kn] = left ? [11, 13, 15, 23, 27, 25] : [12, 14, 16, 24, 28, 26];
+        const el = angle(pose[s]!, pose[e]!, pose[w]!);
+        // Use the ankle as the floor reference, or the knee when the feet are out of frame.
+        const leg = vis(an) > 0.5 ? an : kn;
+        const hip = vis(s) > 0.5 && vis(h) > 0.5 && vis(leg) > 0.5 ? hipAlignment(pose[s]!, pose[h]!, pose[leg]!) : null;
+        const sideView =
+          vis(11) > 0.5 && vis(12) > 0.5 && vis(23) > 0.5 && vis(24) > 0.5
+            ? isSideProfile(pose[11]!, pose[12]!, pose[23]!, pose[24]!)
+            : null;
+        setElbow(Math.round(el));
+        setHipAngle(hip ? Math.round(hip.angle) : null);
+
+        // Neon green skeleton for solid form, neon red when orientation or plank form breaks.
+        const broken = sideView === false || hip?.break != null;
         const css = getComputedStyle(c);
         const cyan = css.getPropertyValue("--primary").trim();
         const lime = css.getPropertyValue("--secondary").trim();
+        const red = css.getPropertyValue("--destructive").trim();
         ctx.lineWidth = 4;
-        ctx.strokeStyle = cyan;
+        ctx.strokeStyle = broken ? red : hip ? lime : cyan;
         for (const [a, b] of EDGES) {
           ctx.beginPath();
           ctx.moveTo(pose[a]!.x * c.width, pose[a]!.y * c.height);
           ctx.lineTo(pose[b]!.x * c.width, pose[b]!.y * c.height);
           ctx.stroke();
         }
-        ctx.fillStyle = lime;
+        ctx.fillStyle = broken ? red : lime;
         for (const i of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) {
           ctx.beginPath();
           ctx.arc(pose[i]!.x * c.width, pose[i]!.y * c.height, 6, 0, Math.PI * 2);
           ctx.fill();
         }
-        const vis = (i: number) => pose[i]?.visibility ?? 0;
-        const left = vis(11) + vis(13) + vis(15) >= vis(12) + vis(14) + vis(16);
-        const [s, e, w, h, an] = left ? [11, 13, 15, 23, 27] : [12, 14, 16, 24, 28];
-        const el = angle(pose[s]!, pose[e]!, pose[w]!);
-        const body = vis(h) > 0.5 && vis(an) > 0.5 ? angle(pose[s]!, pose[h]!, pose[an]!) : null;
-        setElbow(Math.round(el));
+
         if (runningRef.current) {
-          const r = step(stateRef.current, el, body);
+          const r = step(stateRef.current, {
+            elbow: el,
+            hip,
+            sideView,
+            shoulderY: vis(s) > 0.5 ? pose[s]!.y : null,
+            ankleY: vis(leg) > 0.5 ? pose[leg]!.y : null,
+          });
           badgesRef.current = tallyBadge(badgesRef.current, stateRef.current.status, r.state.status);
           stateRef.current = r.state;
           setStatus(r.state.status);
@@ -178,6 +197,7 @@ function RageBit() {
     startedAtRef.current = null;
     setReps(0);
     setStatus("Get in position");
+    setHipAngle(null);
   }
 
   function save() {
@@ -251,15 +271,39 @@ function RageBit() {
         {camOn && (
           <>
             <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
-              <span className={`rounded-full px-3 py-1.5 text-sm font-bold uppercase tracking-wide ${statusTone}`}>
+              <span
+                className={`rounded-full px-3 py-1.5 text-sm font-bold uppercase tracking-wide ${statusTone} ${
+                  status !== "Good Form" && status !== "Get in position" ? "animate-pulse" : ""
+                }`}
+              >
                 {status}
               </span>
-              {elbow !== null && (
-                <span className="rounded-full bg-background/70 px-3 py-1.5 text-sm font-semibold tabular-nums">
-                  {elbow}°
-                </span>
-              )}
+              <div className="flex flex-col items-end gap-1.5">
+                {elbow !== null && (
+                  <span className="rounded-full bg-background/70 px-3 py-1.5 text-sm font-semibold tabular-nums">
+                    Elbow {elbow}°
+                  </span>
+                )}
+                {hipAngle !== null && (
+                  <span
+                    className={`rounded-full px-3 py-1.5 text-sm font-semibold tabular-nums ${
+                      status === "Hips Sagging" || status === "Hips Piking"
+                        ? "bg-destructive text-destructive-foreground"
+                        : "bg-background/70"
+                    }`}
+                  >
+                    Spine {hipAngle}°
+                  </span>
+                )}
+              </div>
             </div>
+            {running && status === "Turn Sideways" && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/70 p-6 text-center">
+                <p className="max-w-xs text-lg font-bold">
+                  Turn sideways — show your side profile to unlock tracking.
+                </p>
+              </div>
+            )}
             <div className="absolute bottom-3 left-0 right-0 text-center">
               <div key={pulse} className="text-[7rem] leading-none font-black tabular-nums text-primary neon-glow animate-in zoom-in-75 duration-300">
                 {reps}
