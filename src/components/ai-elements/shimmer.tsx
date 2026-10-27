@@ -56,6 +56,7 @@ const ShimmerComponent = ({
         className
       )}
       initial={{ backgroundPosition: "100% center" }}
+      // @ts-ignore motion style typing
       style={
         {
           "--spread": `${dynamicSpread}px`,

@@ -135,21 +135,21 @@ function RageBit() {
         ctx.strokeStyle = cyan;
         for (const [a, b] of EDGES) {
           ctx.beginPath();
-          ctx.moveTo(pose[a].x * c.width, pose[a].y * c.height);
-          ctx.lineTo(pose[b].x * c.width, pose[b].y * c.height);
+          ctx.moveTo(pose[a]!.x * c.width, pose[a]!.y * c.height);
+          ctx.lineTo(pose[b]!.x * c.width, pose[b]!.y * c.height);
           ctx.stroke();
         }
         ctx.fillStyle = lime;
         for (const i of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) {
           ctx.beginPath();
-          ctx.arc(pose[i].x * c.width, pose[i].y * c.height, 6, 0, Math.PI * 2);
+          ctx.arc(pose[i]!.x * c.width, pose[i]!.y * c.height, 6, 0, Math.PI * 2);
           ctx.fill();
         }
-        const vis = (i: number) => pose[i].visibility ?? 0;
+        const vis = (i: number) => pose[i]?.visibility ?? 0;
         const left = vis(11) + vis(13) + vis(15) >= vis(12) + vis(14) + vis(16);
         const [s, e, w, h, an] = left ? [11, 13, 15, 23, 27] : [12, 14, 16, 24, 28];
-        const el = angle(pose[s], pose[e], pose[w]);
-        const body = vis(h) > 0.5 && vis(an) > 0.5 ? angle(pose[s], pose[h], pose[an]) : null;
+        const el = angle(pose[s]!, pose[e]!, pose[w]!);
+        const body = vis(h) > 0.5 && vis(an) > 0.5 ? angle(pose[s]!, pose[h]!, pose[an]!) : null;
         setElbow(Math.round(el));
         if (runningRef.current) {
           const r = step(stateRef.current, el, body);
