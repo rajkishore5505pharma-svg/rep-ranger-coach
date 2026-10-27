@@ -212,6 +212,7 @@ function RageBit() {
 
   return (
     <div className="rage flex h-dvh flex-col bg-background text-foreground">
+      <Toaster position="top-center" />
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="text-2xl font-black italic tracking-tight">
           RAGE<span className="text-primary neon-glow">BIT</span>
@@ -300,7 +301,7 @@ function RageBit() {
           variant={running ? "secondary" : "default"}
           className="h-14 rounded-full text-base font-bold"
           disabled={!camOn || loading}
-          onClick={() => setRunning((r) => !r)}
+          onClick={toggleRun}
         >
           {running ? <><Pause /> Pause</> : <><Play /> Start Workout</>}
         </Button>
