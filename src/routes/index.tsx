@@ -242,6 +242,13 @@ function RageBit() {
               <Camera /> {loading ? "Starting…" : "Grant Camera Access"}
             </Button>
             {error && <p className="rounded-xl bg-destructive/15 px-4 py-3 text-sm text-destructive">{error}</p>}
+            {error && (
+              <Button variant="outline" className="rounded-full" asChild>
+                <a href={typeof window !== "undefined" ? window.location.href : "/"} target="_blank" rel="noopener noreferrer">
+                  Open in a new tab
+                </a>
+              </Button>
+            )}
           </div>
         )}
         {camOn && loading && (
