@@ -1,15 +1,15 @@
 import type { FormStatus } from "./pushup";
 
-export type BadgeCounts = { "Good Form": number; "Go Lower": number; "Spine Sagging": number };
+export type BadgeCounts = { "Good Form": number; "Go Lower": number; "Hips Sagging": number; "Hips Piking": number };
 export type Workout = { id: string; startedAt: number; endedAt: number; reps: number; badges: BadgeCounts };
 
 const KEY = "ragebit-history";
 
-export const emptyBadges = (): BadgeCounts => ({ "Good Form": 0, "Go Lower": 0, "Spine Sagging": 0 });
+export const emptyBadges = (): BadgeCounts => ({ "Good Form": 0, "Go Lower": 0, "Hips Sagging": 0, "Hips Piking": 0 });
 
 /** Count a badge each time the shown status changes to it. */
 export function tallyBadge(counts: BadgeCounts, prev: FormStatus, next: FormStatus): BadgeCounts {
-  if (prev === next || next === "Get in position") return counts;
+  if (prev === next || next === "Get in position" || next === "Turn Sideways") return counts;
   return { ...counts, [next]: counts[next] + 1 };
 }
 

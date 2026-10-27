@@ -88,9 +88,12 @@ function History() {
               </Button>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5 text-xs font-bold">
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground">Good Form ×{w.badges["Good Form"]}</span>
-              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"]}</span>
-              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Spine Sagging ×{w.badges["Spine Sagging"]}</span>
+              <span className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground">Good Form ×{w.badges["Good Form"] ?? 0}</span>
+              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"] ?? 0}</span>
+              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">
+                Hips Sagging ×{(w.badges as Record<string, number>)["Hips Sagging"] ?? (w.badges as Record<string, number>)["Spine Sagging"] ?? 0}
+              </span>
+              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Hips Piking ×{w.badges["Hips Piking"] ?? 0}</span>
             </div>
           </li>
         ))}
