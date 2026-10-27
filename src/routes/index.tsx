@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, MessageCircle, Pause, Play, RotateCcw, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import { Camera, History, MessageCircle, Pause, Play, RotateCcw, Save, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { angle, initialRepState, step, type FormStatus, type Pt } from "@/lib/pushup";
+import { emptyBadges, saveWorkout, tallyBadge } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -68,6 +71,8 @@ function RageBit() {
   const [status, setStatus] = useState<FormStatus>("Get in position");
   const [elbow, setElbow] = useState<number | null>(null);
   const [pulse, setPulse] = useState(0);
+  const badgesRef = useRef(emptyBadges());
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
@@ -153,6 +158,7 @@ function RageBit() {
         setElbow(Math.round(el));
         if (runningRef.current) {
           const r = step(stateRef.current, el, body);
+          badgesRef.current = tallyBadge(badgesRef.current, stateRef.current.status, r.state.status);
           stateRef.current = r.state;
           setStatus(r.state.status);
           if (r.rep) {
@@ -168,8 +174,29 @@ function RageBit() {
 
   function reset() {
     stateRef.current = initialRepState();
+    badgesRef.current = emptyBadges();
+    startedAtRef.current = null;
     setReps(0);
     setStatus("Get in position");
+  }
+
+  function save() {
+    if (stateRef.current.reps === 0) return;
+    saveWorkout({
+      id: `${Date.now()}`,
+      startedAt: startedAtRef.current ?? Date.now(),
+      endedAt: Date.now(),
+      reps: stateRef.current.reps,
+      badges: badgesRef.current,
+    });
+    setRunning(false);
+    reset();
+    toast.success("Workout saved to history");
+  }
+
+  function toggleRun() {
+    if (!running && startedAtRef.current === null) startedAtRef.current = Date.now();
+    setRunning((r) => !r);
   }
 
   function flip() {
@@ -185,13 +212,22 @@ function RageBit() {
 
   return (
     <div className="rage flex h-dvh flex-col bg-background text-foreground">
+      <Toaster position="top-center" />
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="text-2xl font-black italic tracking-tight">
           RAGE<span className="text-primary neon-glow">BIT</span>
         </span>
         <div className="flex gap-1">
+          {reps > 0 && (
+            <Button variant="secondary" size="sm" className="rounded-full font-bold" onClick={save}>
+              <Save /> Save
+            </Button>
+          )}
           <Button variant="ghost" size="icon" aria-label="Switch camera" onClick={flip}>
             <SwitchCamera />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Workout history" asChild>
+            <Link to="/history"><History /></Link>
           </Button>
           <Button variant="ghost" size="icon" aria-label="Open AI chat" asChild>
             <Link to="/chat"><MessageCircle /></Link>
@@ -265,7 +301,7 @@ function RageBit() {
           variant={running ? "secondary" : "default"}
           className="h-14 rounded-full text-base font-bold"
           disabled={!camOn || loading}
-          onClick={() => setRunning((r) => !r)}
+          onClick={toggleRun}
         >
           {running ? <><Pause /> Pause</> : <><Play /> Start Workout</>}
         </Button>
