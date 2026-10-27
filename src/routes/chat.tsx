@@ -19,7 +19,7 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
       { title: "Still — a calm AI assistant" },
