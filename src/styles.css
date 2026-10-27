@@ -145,3 +145,27 @@
     color: var(--color-foreground);
   }
 }
+
+/* RageBit: dark neon theme scoped to the workout screen */
+.rage {
+  --background: oklch(0.208 0.042 265.755);
+  --foreground: oklch(0.97 0.01 250);
+  --card: oklch(0.26 0.04 265);
+  --card-foreground: oklch(0.97 0.01 250);
+  --primary: oklch(0.754 0.139 232.661);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.723 0.192 149.579);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.28 0.04 265);
+  --muted-foreground: oklch(0.72 0.03 255);
+  --accent: oklch(0.3 0.05 265);
+  --accent-foreground: oklch(0.97 0.01 250);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.754 0.139 232.661 / 25%);
+  --input: oklch(0.754 0.139 232.661 / 25%);
+  --ring: oklch(0.754 0.139 232.661);
+}
+@utility neon-glow {
+  text-shadow: 0 0 24px color-mix(in oklab, var(--primary) 70%, transparent);
+}
