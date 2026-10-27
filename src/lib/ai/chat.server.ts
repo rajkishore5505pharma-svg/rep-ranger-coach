@@ -12,7 +12,7 @@ function jsonError(status: number, message: string) {
 }
 
 export async function handleChat(request: Request) {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env['LOVABLE_API_KEY'];
   if (!apiKey) return jsonError(500, "AI is not configured.");
 
   let messages: UIMessage[];
