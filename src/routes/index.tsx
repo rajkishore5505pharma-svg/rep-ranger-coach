@@ -4,7 +4,7 @@ import { Camera, History, MessageCircle, Pause, Play, RotateCcw, Save, SwitchCam
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { angle, hipAlignment, initialRepState, isSideProfile, step, type FormStatus, type Pt } from "@/lib/pushup";
+import { initialRepState, measurePose, smoothPose, step, type FormStatus, type Pt } from "@/lib/pushup";
 import { emptyBadges, saveWorkout, tallyBadge } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
@@ -60,6 +60,8 @@ function RageBit() {
   const runningRef = useRef(false);
   const soundRef = useRef(true);
   const rafRef = useRef(0);
+  const smoothedRef = useRef<(Pt | null)[]>([]);
+  const lastVideoTimeRef = useRef(-1);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [camOn, setCamOn] = useState(false);
@@ -109,7 +111,10 @@ function RageBit() {
         audio: false,
       });
       streamRef.current = stream;
-      const v = videoRef.current!;
+      smoothedRef.current = [];
+      lastVideoTimeRef.current = -1;
+      const v = videoRef.current;
+      if (!v) { stream.getTracks().forEach((t) => t.stop()); return; }
       v.srcObject = stream;
       await v.play();
       setCamOn(true);
@@ -127,56 +132,49 @@ function RageBit() {
     const v = videoRef.current;
     const c = canvasRef.current;
     const lm = landmarkerRef.current;
-    if (v && c && lm && v.readyState >= 2) {
+    if (v && c && lm && v.readyState >= 2 && v.currentTime !== lastVideoTimeRef.current) {
+      lastVideoTimeRef.current = v.currentTime;
       c.width = v.videoWidth;
       c.height = v.videoHeight;
-      const ctx = c.getContext("2d")!;
+      const ctx = c.getContext("2d");
+      if (!ctx) { rafRef.current = requestAnimationFrame(loop); return; }
       ctx.clearRect(0, 0, c.width, c.height);
-      const pose = lm.detectForVideo(v, performance.now()).landmarks[0];
-      if (pose) {
-        const vis = (i: number) => pose[i]?.visibility ?? 0;
-        const left = vis(11) + vis(13) + vis(15) >= vis(12) + vis(14) + vis(16);
-        const [s, e, w, h, an, kn] = left ? [11, 13, 15, 23, 27, 25] : [12, 14, 16, 24, 28, 26];
-        const el = angle(pose[s]!, pose[e]!, pose[w]!);
-        // Use the ankle as the floor reference, or the knee when the feet are out of frame.
-        const leg = vis(an) > 0.5 ? an : kn;
-        const hip = vis(s) > 0.5 && vis(h) > 0.5 && vis(leg) > 0.5 ? hipAlignment(pose[s]!, pose[h]!, pose[leg]!) : null;
-        const sideView =
-          vis(11) > 0.5 && vis(12) > 0.5 && vis(23) > 0.5 && vis(24) > 0.5
-            ? isSideProfile(pose[11]!, pose[12]!, pose[23]!, pose[24]!)
-            : null;
-        setElbow(Math.round(el));
-        setHipAngle(hip ? Math.round(hip.angle) : null);
+      const raw = lm.detectForVideo(v, performance.now()).landmarks[0];
+      const pose = raw ? smoothPose(smoothedRef.current, raw, c.width / c.height) : [];
+      smoothedRef.current = pose;
+      const measurement = measurePose(pose);
+      setElbow(measurement ? Math.round(measurement.elbow) : null);
+      setHipAngle(measurement?.hip ? Math.round(measurement.hip.angle) : null);
+      if (raw) {
 
         // Neon green skeleton for solid form, neon red when orientation or plank form breaks.
-        const broken = sideView === false || hip?.break != null;
+        const broken = measurement?.sideView === false || measurement?.hip?.break != null;
         const css = getComputedStyle(c);
         const cyan = css.getPropertyValue("--primary").trim();
         const lime = css.getPropertyValue("--secondary").trim();
         const red = css.getPropertyValue("--destructive").trim();
         ctx.lineWidth = 4;
-        ctx.strokeStyle = broken ? red : hip ? lime : cyan;
+        ctx.strokeStyle = broken ? red : measurement ? lime : cyan;
         for (const [a, b] of EDGES) {
+          const start = pose[a], end = pose[b];
+          if (!start || !end) continue;
           ctx.beginPath();
-          ctx.moveTo(pose[a]!.x * c.width, pose[a]!.y * c.height);
-          ctx.lineTo(pose[b]!.x * c.width, pose[b]!.y * c.height);
+          ctx.moveTo(start.x * c.height, start.y * c.height);
+          ctx.lineTo(end.x * c.height, end.y * c.height);
           ctx.stroke();
         }
         ctx.fillStyle = broken ? red : lime;
         for (const i of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) {
+          const point = pose[i];
+          if (!point) continue;
           ctx.beginPath();
-          ctx.arc(pose[i]!.x * c.width, pose[i]!.y * c.height, 6, 0, Math.PI * 2);
+          ctx.arc(point.x * c.height, point.y * c.height, 6, 0, Math.PI * 2);
           ctx.fill();
         }
 
+      }
         if (runningRef.current) {
-          const r = step(stateRef.current, {
-            elbow: el,
-            hip,
-            sideView,
-            shoulderY: vis(s) > 0.5 ? pose[s]!.y : null,
-            ankleY: vis(leg) > 0.5 ? pose[leg]!.y : null,
-          });
+          const r = step(stateRef.current, measurement);
           badgesRef.current = tallyBadge(badgesRef.current, stateRef.current.status, r.state.status);
           stateRef.current = r.state;
           setStatus(r.state.status);
@@ -186,7 +184,6 @@ function RageBit() {
             if (soundRef.current) beep();
           }
         }
-      }
     }
     rafRef.current = requestAnimationFrame(loop);
   }

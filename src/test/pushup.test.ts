@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { angle, hipAlignment, initialRepState, isSideProfile, step, type Frame } from "@/lib/pushup";
+import { angle, hipAlignment, initialRepState, isSideProfile, measurePose, smoothPose, step, type Frame, type Pt } from "@/lib/pushup";
 
 const frame = (elbow: number, o: Partial<Frame> = {}): Frame => ({
   elbow,
-  hip: null,
+  hip: { angle: 180, break: null },
   sideView: true,
-  shoulderY: null,
-  ankleY: null,
+  shoulderY: elbow < 100 ? 0.73 : 0.4,
+  armLength: 0.5,
   ...o,
 });
 
@@ -19,11 +19,11 @@ const run = (frames: Frame[]) => {
 const elbows = (angles: number[]) => angles.map((a) => frame(a));
 
 describe("push-up rep logic", () => {
-  it("counts a rep when elbow goes below 90 then above 160", () => {
-    expect(run(elbows([170, 120, 85, 120, 165])).reps).toBe(1);
+  it("counts a rep when elbow goes below 100 then above 160", () => {
+    expect(run(elbows([170, 120, 99, 120, 165])).reps).toBe(1);
   });
 
-  it("does not count a shallow rep that never goes below 90", () => {
+  it("does not count a shallow rep that never goes below 100", () => {
     const s = run(elbows([170, 120, 100, 120, 165]));
     expect(s.reps).toBe(0);
     expect(s.status).toBe("Go Lower");
@@ -97,10 +97,10 @@ describe("form break invalidation", () => {
 });
 
 describe("chest depth enforcement", () => {
-  const deep = (elbow: number, shoulderY: number) => frame(elbow, { shoulderY, ankleY: 1 });
+  const deep = (elbow: number, shoulderY: number) => frame(elbow, { shoulderY, armLength: 0.5 });
 
-  it("counts a rep whose chest drops at least halfway to the floor line", () => {
-    const s = run([deep(170, 0.4), deep(85, 0.72), deep(165, 0.4)]);
+  it("counts a rep whose chest drops 65% of arm length", () => {
+    const s = run([deep(170, 0.4), deep(99, 0.725), deep(165, 0.4)]);
     expect(s.reps).toBe(1);
   });
 
@@ -108,5 +108,64 @@ describe("chest depth enforcement", () => {
     const s = run([deep(170, 0.4), deep(85, 0.6), deep(165, 0.4)]);
     expect(s.reps).toBe(0);
     expect(s.status).toBe("Go Lower");
+  });
+});
+
+describe("stable camera measurements", () => {
+  it("accepts a horizontal side-on torso", () => {
+    expect(isSideProfile({ x: 0.2, y: 0.4 }, { x: 0.21, y: 0.4 }, { x: 0.6, y: 0.4 }, { x: 0.61, y: 0.4 })).toBe(true);
+  });
+
+  it("classifies sag and pike identically when mirrored", () => {
+    const mirror = (p: Pt) => ({ x: 1 - p.x, y: p.y });
+    const s = { x: 0.2, y: 0.4 }, a = { x: 0.8, y: 0.4 };
+    for (const [y, kind] of [[0.5, "sag"], [0.3, "pike"]] as const) {
+      const h = { x: 0.5, y };
+      expect(hipAlignment(s, h, a).break).toBe(kind);
+      expect(hipAlignment(mirror(s), mirror(h), mirror(a)).break).toBe(kind);
+    }
+  });
+
+  it("keeps the 10-degree plank tolerance", () => {
+    const h = { x: 0, y: 0 }, s = { x: -1, y: 0 };
+    const a = (degrees: number) => ({ x: Math.cos(degrees * Math.PI / 180), y: Math.sin(degrees * Math.PI / 180) });
+    expect(hipAlignment(s, h, a(9)).break).toBeNull();
+    expect(hipAlignment(s, h, a(11)).break).not.toBeNull();
+  });
+
+  it("smooths landmarks with EMA and corrects camera aspect ratio", () => {
+    const first = smoothPose([], [{ x: 0.2, y: 0.4, visibility: 1 }], 2);
+    const second = smoothPose(first, [{ x: 0.4, y: 0.6, visibility: 1 }], 2);
+    expect(second[0]?.x).toBeCloseTo(0.54);
+    expect(second[0]?.y).toBeCloseTo(0.47);
+  });
+
+  it("rejects visibility below 0.5 without reusing stale landmarks", () => {
+    const first = smoothPose([], [{ x: 0.2, y: 0.4, visibility: 1 }], 1);
+    expect(smoothPose(first, [{ x: 0.2, y: 0.4, visibility: 0.49 }], 1)[0]).toBeNull();
+    expect(smoothPose([], [{ x: 0.2, y: 0.4, visibility: 0.5 }], 1)[0]).not.toBeNull();
+    expect(measurePose(first)).toBeNull();
+  });
+
+  it("never counts across missing pose data", () => {
+    let s = run(elbows([170, 85]));
+    s = step(s, null).state;
+    expect(step(s, frame(165)).state.reps).toBe(0);
+  });
+
+  it("requires measurable depth and a top position before counting", () => {
+    expect(run(elbows([85, 165])).reps).toBe(0);
+    expect(run(elbows([170, 85, 165]).map((f) => ({ ...f, armLength: null }))).reps).toBe(0);
+  });
+
+  it("normalizes depth across camera distances", () => {
+    for (const scale of [0.5, 1, 2]) {
+      const frames = elbows([170, 99, 165]).map((f) => ({ ...f, shoulderY: (f.shoulderY ?? 0) * scale, armLength: 0.5 * scale }));
+      expect(run(frames).reps).toBe(1);
+    }
+  });
+
+  it("clears the orientation lock before the next clean rep", () => {
+    expect(run([frame(170, { sideView: false }), frame(170), frame(99), frame(165)]).reps).toBe(1);
   });
 });
