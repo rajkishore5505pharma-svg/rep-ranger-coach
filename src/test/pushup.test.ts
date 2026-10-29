@@ -174,7 +174,7 @@ describe("stable camera measurements", () => {
     const pose = (down: boolean): Pt[] => {
       const y = down ? 0.65 : 0.3;
       const points = Array.from({ length: 33 }, () => ({ x: 0, y: 0, visibility: 0 }));
-      for (const [s, e, w, h, a] of [[11, 13, 15, 23, 27], [12, 14, 16, 24, 28]]) {
+      for (const [s, e, w, h, a] of [[11, 13, 15, 23, 27], [12, 14, 16, 24, 28]] as const) {
         points[s] = { x: 0.3, y, visibility: 1 };
         points[e] = { x: down ? 0.05 : 0.3, y: down ? y : y + 0.25, visibility: 1 };
         points[w] = { x: down ? 0.05 : 0.3, y: down ? y + 0.25 : y + 0.5, visibility: 1 };
