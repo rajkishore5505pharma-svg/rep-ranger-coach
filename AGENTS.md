@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep pose smoothing, aspect-corrected measurements, and rep validation in the browser-safe push-up logic module so the camera and regression tests share identical biomechanics.
