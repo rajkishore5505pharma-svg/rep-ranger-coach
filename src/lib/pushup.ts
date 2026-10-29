@@ -168,7 +168,7 @@ export function step(s: RepState, f: Frame | null): { state: RepState; rep: bool
   } else if (s.phase === "down" && f.elbow > UP_ANGLE) {
     next.phase = "up";
     next.minAngle = 180;
-    const deepEnough = next.maxDepth !== null && next.maxDepth >= MIN_DEPTH;
+    const deepEnough = next.maxDepth !== null && next.maxDepth + 1e-9 >= MIN_DEPTH;
     if (!s.invalid && deepEnough) {
       next.reps = s.reps + 1;
       rep = true;
