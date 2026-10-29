@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, History, MessageCircle, Pause, Play, RotateCcw, Save, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import { Camera, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import { createGate, cuesFor, speak } from "@/lib/voice-coach";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -79,6 +80,35 @@ function RageBit() {
 
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
+
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voiceName, setVoiceName] = useState("");
+  const voiceOnRef = useRef(true);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const gateRef = useRef(createGate());
+  useEffect(() => { voiceOnRef.current = voiceOn; }, [voiceOn]);
+  useEffect(() => {
+    if (!window.speechSynthesis) return;
+    const load = () => {
+      const en = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith("en"));
+      setVoices(en);
+      setVoiceName((cur) => cur || localStorage.getItem("ragebit-voice") || en.find((v) => v.lang === "en-US")?.name || en[0]?.name || "");
+    };
+    load();
+    window.speechSynthesis.addEventListener("voiceschanged", load);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
+  }, []);
+  useEffect(() => {
+    voiceRef.current = voices.find((v) => v.name === voiceName) ?? null;
+    if (voiceName) localStorage.setItem("ragebit-voice", voiceName);
+  }, [voices, voiceName]);
+  function toggleVoice() {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    if (next) speak("Voice coach on.", voiceRef.current, true);
+    else window.speechSynthesis?.cancel();
+  }
   useEffect(() => () => {
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -176,6 +206,12 @@ function RageBit() {
         if (runningRef.current) {
           const r = step(stateRef.current, measurement);
           badgesRef.current = tallyBadge(badgesRef.current, stateRef.current.status, r.state.status);
+          if (voiceOnRef.current) {
+            const now = performance.now();
+            for (const cue of cuesFor(stateRef.current.status, r.state.status, r.rep, r.state.reps)) {
+              if (gateRef.current(cue, now)) speak(cue.text, voiceRef.current, cue.urgent);
+            }
+          }
           stateRef.current = r.state;
           setStatus(r.state.status);
           if (r.rep) {
@@ -234,7 +270,28 @@ function RageBit() {
         <span className="text-2xl font-black italic tracking-tight">
           RAGE<span className="text-primary neon-glow">BIT</span>
         </span>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <Button
+            variant={voiceOn ? "default" : "ghost"}
+            size="icon"
+            className="rounded-full"
+            aria-label={voiceOn ? "Mute voice coach" : "Unmute voice coach"}
+            onClick={toggleVoice}
+          >
+            {voiceOn ? <Mic /> : <MicOff />}
+          </Button>
+          {voices.length > 0 && (
+            <select
+              aria-label="Coach voice"
+              value={voiceName}
+              onChange={(e) => setVoiceName(e.target.value)}
+              className="h-8 max-w-24 rounded-full border border-border bg-card px-2 text-xs text-foreground"
+            >
+              {voices.map((v) => (
+                <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+              ))}
+            </select>
+          )}
           {reps > 0 && (
             <Button variant="secondary" size="sm" className="rounded-full font-bold" onClick={save}>
               <Save /> Save
