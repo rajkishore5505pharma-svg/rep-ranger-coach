@@ -168,4 +168,28 @@ describe("stable camera measurements", () => {
   it("clears the orientation lock before the next clean rep", () => {
     expect(run([frame(170, { sideView: false }), frame(170), frame(99), frame(165)]).reps).toBe(1);
   });
+
+  it("counts a full landmark sequence through smoothing and measurement", () => {
+    let previous: (Pt | null)[] = [], state = initialRepState();
+    const pose = (down: boolean): Pt[] => {
+      const y = down ? 0.65 : 0.3;
+      const points = Array.from({ length: 33 }, () => ({ x: 0, y: 0, visibility: 0 }));
+      for (const [s, e, w, h, a] of [[11, 13, 15, 23, 27], [12, 14, 16, 24, 28]]) {
+        points[s] = { x: 0.3, y, visibility: 1 };
+        points[e] = { x: down ? 0.05 : 0.3, y: down ? y : y + 0.25, visibility: 1 };
+        points[w] = { x: down ? 0.05 : 0.3, y: down ? y + 0.25 : y + 0.5, visibility: 1 };
+        points[h] = { x: 0.6, y, visibility: 1 };
+        points[a] = { x: 0.95, y, visibility: 1 };
+      }
+      return points;
+    };
+    for (const down of [false, true, false]) {
+      for (let i = 0; i < 40; i++) {
+        previous = smoothPose(previous, pose(down), 1);
+        state = step(state, measurePose(previous)).state;
+      }
+    }
+    expect(state.reps).toBe(1);
+    expect(state.status).toBe("Good Form");
+  });
 });
