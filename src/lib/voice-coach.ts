@@ -42,16 +42,36 @@ export function createGate(cooldown = COOLDOWN_MS) {
   };
 }
 
+// Chrome garbage-collects utterances that aren't referenced, silently dropping speech.
+const live = new Set<SpeechSynthesisUtterance>();
+let unlocked = false;
+
+/** Call from a tap: mobile browsers block speech that wasn't first started by the user. */
+export function unlockSpeech() {
+  if (typeof window === "undefined" || !window.speechSynthesis || unlocked) return;
+  const u = new SpeechSynthesisUtterance(" ");
+  u.volume = 0;
+  window.speechSynthesis.speak(u);
+  unlocked = true;
+  // Chrome pauses long-running synthesis; keep it awake.
+  setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 1000);
+}
+
 export function speak(text: string, voice: SpeechSynthesisVoice | null, interrupt: boolean) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   const synth = window.speechSynthesis;
-  // Chrome drops an utterance queued right after cancel(); only cancel when something is playing.
-  if (interrupt && (synth.speaking || synth.pending)) synth.cancel();
-  synth.resume();
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 1.2;
   u.pitch = 1;
   u.volume = 1;
   if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = "en-US";
-  synth.speak(u);
+  live.add(u);
+  u.onend = u.onerror = () => live.delete(u);
+  const busy = synth.speaking || synth.pending;
+  if (interrupt && busy) {
+    synth.cancel();
+    // Speaking in the same tick as cancel() is dropped on Android Chrome.
+    setTimeout(() => synth.speak(u), 60);
+  } else synth.speak(u);
+  synth.resume();
 }
