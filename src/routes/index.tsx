@@ -5,7 +5,7 @@ import { createGate, cuesFor, speak } from "@/lib/voice-coach";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { initialRepState, measurePose, smoothPose, step, type FormStatus, type Pt } from "@/lib/pushup";
+import { MIN_DEPTH, initialRepState, measurePose, smoothPose, step, type FormStatus, type Pt } from "@/lib/pushup";
 import { emptyBadges, saveWorkout, tallyBadge } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
@@ -75,16 +75,17 @@ function RageBit() {
   const [elbow, setElbow] = useState<number | null>(null);
   const [hipAngle, setHipAngle] = useState<number | null>(null);
   const [pulse, setPulse] = useState(0);
+  const [depth, setDepth] = useState(0);
   const badgesRef = useRef(emptyBadges());
   const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
 
-  const [voiceOn, setVoiceOn] = useState(true);
+  const [voiceOn, setVoiceOn] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceName, setVoiceName] = useState("");
-  const voiceOnRef = useRef(true);
+  const voiceOnRef = useRef(false);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const gateRef = useRef(createGate());
   useEffect(() => { voiceOnRef.current = voiceOn; }, [voiceOn]);
@@ -214,6 +215,7 @@ function RageBit() {
           }
           stateRef.current = r.state;
           setStatus(r.state.status);
+          setDepth(r.state.depth);
           if (r.rep) {
             setReps(r.state.reps);
             setPulse((p) => p + 1);
@@ -231,6 +233,7 @@ function RageBit() {
     setReps(0);
     setStatus("Get in position");
     setHipAngle(null);
+    setDepth(0);
   }
 
   function save() {
@@ -353,6 +356,18 @@ function RageBit() {
                 )}
               </div>
             </div>
+            {running && (
+              <div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col items-center gap-1.5" aria-label="Chest depth">
+                <div className="relative h-48 w-5 overflow-hidden rounded-full border border-border bg-background/70">
+                  <div
+                    className={`absolute inset-x-0 top-0 transition-[height] duration-100 ${depth >= MIN_DEPTH ? "bg-secondary" : "bg-primary"}`}
+                    style={{ height: `${Math.min(100, (depth / (MIN_DEPTH * 1.25)) * 100)}%` }}
+                  />
+                  <div className="absolute inset-x-0 h-0.5 bg-foreground" style={{ top: "80%" }} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Depth</span>
+              </div>
+            )}
             {running && status === "Turn Sideways" && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 p-6 text-center">
                 <p className="max-w-xs text-lg font-bold">

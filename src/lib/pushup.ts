@@ -9,13 +9,19 @@ export type FormStatus =
   | "Hips Piking";
 
 export const DOWN_ANGLE = 100;
-export const UP_ANGLE = 160;
+export const UP_ANGLE = 150;
 /** Max allowed deviation from a straight 180° shoulder-hip-ankle line. */
 export const PLANK_TOLERANCE = 10;
 /** Shoulder/hip horizontal overlap ratio below which the view counts as a side profile. */
 export const SIDE_VIEW_MAX = 0.45;
 /** Chest descent relative to arm length measured at the top. */
-export const MIN_DEPTH = 0.65;
+export const MIN_DEPTH = 0.4;
+/** Chest drop below which the user is considered back at the top. */
+export const TOP_DEPTH = 0.15;
+/** A dip deeper than this that never reaches MIN_DEPTH earns "Go Lower". */
+export const SHALLOW_DEPTH = 0.15;
+/** Consecutive frames (~0.5s at 30fps) a glitch may last before it counts. */
+export const GRACE_FRAMES = 15;
 export const MIN_VISIBILITY = 0.5;
 export const EMA_ALPHA = 0.35;
 
@@ -102,7 +108,7 @@ export type RepState = {
   phase: "up" | "down";
   minAngle: number;
   status: FormStatus;
-  /** Rep in progress was voided by a form break. */
+  /** Rep in progress was voided by a sustained form break. */
   invalid: boolean;
   /** Highest shoulder position seen (smallest y). */
   topY: number | null;
@@ -110,6 +116,12 @@ export type RepState = {
   maxDepth: number | null;
   topArmLength: number | null;
   ready: boolean;
+  /** Current chest drop as a fraction of arm length (0 = top). */
+  depth: number;
+  /** Consecutive frames of missing data / wrong orientation / hip break. */
+  missFrames: number;
+  offFrames: number;
+  breakFrames: number;
 };
 
 export const initialRepState = (): RepState => ({
@@ -122,75 +134,88 @@ export const initialRepState = (): RepState => ({
   maxDepth: null,
   topArmLength: null,
   ready: false,
+  depth: 0,
+  missFrames: 0,
+  offFrames: 0,
+  breakFrames: 0,
 });
 
 /** Advance the counter with one frame of pose measurements. */
 export function step(s: RepState, f: Frame | null): { state: RepState; rep: boolean } {
-  if (!f || f.sideView === null || !f.hip || f.shoulderY === null || f.armLength === null || f.horizontal === false) {
-    return { state: { ...initialRepState(), reps: s.reps }, rep: false };
+  // Brief tracking dropouts are ignored; only a sustained loss resets the rep.
+  if (!f || f.sideView === null || !f.hip || f.shoulderY === null || f.armLength === null) {
+    if (s.missFrames + 1 <= GRACE_FRAMES) return { state: { ...s, missFrames: s.missFrames + 1 }, rep: false };
+    return { state: { ...initialRepState(), reps: s.reps, missFrames: s.missFrames + 1 }, rep: false };
   }
-  const next = { ...s, minAngle: Math.min(s.minAngle, f.elbow) };
+  const next: RepState = { ...s, missFrames: 0 };
   let rep = false;
 
-  // Side-view lockdown: no tracking while facing the camera.
-  if (f.sideView === false) {
-    next.status = "Turn Sideways";
-    next.phase = "up";
-    next.minAngle = 180;
-    next.invalid = true;
-    next.maxDepth = null;
-    next.topY = null;
-    next.topArmLength = null;
-    next.ready = false;
-    return { state: next, rep };
+  // Orientation / plank-position lock, debounced.
+  if (f.sideView === false || f.horizontal === false) {
+    next.offFrames = s.offFrames + 1;
+    if (next.offFrames <= GRACE_FRAMES) return { state: next, rep };
+    return {
+      state: {
+        ...initialRepState(), reps: s.reps, offFrames: next.offFrames,
+        status: f.sideView === false ? "Turn Sideways" : "Get in position",
+      },
+      rep,
+    };
   }
+  next.offFrames = 0;
+  next.minAngle = Math.min(s.minAngle, f.elbow);
 
-  // Plank break: a sag or pike during the descent voids the rep.
-  if (f.hip?.break) {
-    next.status = f.hip.break === "sag" ? "Hips Sagging" : "Hips Piking";
-    next.invalid = true;
-    if (next.phase === "up") next.ready = false;
-    return { state: next, rep };
-  }
+  // Hip break only counts once it lasts longer than the grace window.
+  let breakStatus: FormStatus | null = null;
+  if (f.hip.break) {
+    next.breakFrames = s.breakFrames + 1;
+    if (next.breakFrames > GRACE_FRAMES) {
+      next.invalid = true;
+      breakStatus = f.hip.break === "sag" ? "Hips Sagging" : "Hips Piking";
+    }
+  } else next.breakFrames = 0;
 
   if (s.phase === "up" && f.elbow > UP_ANGLE) {
+    if (!next.ready) next.invalid = breakStatus !== null;
     next.ready = true;
-    next.invalid = false;
     if (next.topY === null || f.shoulderY <= next.topY) {
       next.topY = f.shoulderY;
       next.topArmLength = f.armLength;
     }
   }
+  let depth = 0;
   if (next.ready && next.topY !== null && next.topArmLength !== null && next.topArmLength > 1e-4) {
-    const depth = (f.shoulderY - next.topY) / next.topArmLength;
+    depth = Math.max(0, (f.shoulderY - next.topY) / next.topArmLength);
     next.maxDepth = Math.max(next.maxDepth ?? 0, depth);
   }
+  next.depth = depth;
 
-  if (s.phase === "up" && next.ready && f.elbow < DOWN_ANGLE) {
+  const atTop = f.elbow > UP_ANGLE || depth < TOP_DEPTH;
+  if (s.phase === "up" && next.ready && depth >= MIN_DEPTH) {
+    // Chest reached the target depth: bottom of the rep.
     next.phase = "down";
     next.status = "Good Form";
-  } else if (s.phase === "down" && f.elbow > UP_ANGLE) {
+  } else if (s.phase === "down" && atTop) {
     next.phase = "up";
     next.minAngle = 180;
-    const deepEnough = next.maxDepth !== null && next.maxDepth + 1e-9 >= MIN_DEPTH;
-    if (!s.invalid && deepEnough) {
+    if (!next.invalid) {
       next.reps = s.reps + 1;
       rep = true;
-      next.status = "Good Form";
-    } else {
-      next.status = deepEnough ? "Good Form" : "Go Lower";
     }
+    next.status = "Good Form";
     next.invalid = false;
     next.maxDepth = null;
     next.topY = f.shoulderY;
     next.topArmLength = f.armLength;
-  } else if (s.phase === "up" && f.elbow > UP_ANGLE && s.minAngle < UP_ANGLE - 20) {
-    // came back up without reaching the bottom
+  } else if (s.phase === "up" && f.elbow > UP_ANGLE && (s.minAngle < UP_ANGLE - 20 || (s.maxDepth ?? 0) > SHALLOW_DEPTH)) {
+    // Came back up without the chest reaching the target.
     next.status = "Go Lower";
     next.minAngle = 180;
     next.maxDepth = null;
-  } else if (next.status !== "Good Form") {
+    next.invalid = false;
+  } else if (next.status !== "Good Form" && next.status !== "Go Lower") {
     next.status = "Good Form";
   }
+  if (breakStatus && !rep) next.status = breakStatus;
   return { state: next, rep };
 }

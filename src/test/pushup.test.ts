@@ -19,11 +19,11 @@ const run = (frames: Frame[]) => {
 const elbows = (angles: number[]) => angles.map((a) => frame(a));
 
 describe("push-up rep logic", () => {
-  it("counts a rep when elbow goes below 100 then above 160", () => {
+  it("counts a rep when the chest reaches depth and comes back up", () => {
     expect(run(elbows([170, 120, 99, 120, 165])).reps).toBe(1);
   });
 
-  it("does not count a shallow rep that never goes below 100", () => {
+  it("does not count a shallow rep", () => {
     const s = run(elbows([170, 120, 100, 120, 165]));
     expect(s.reps).toBe(0);
     expect(s.status).toBe("Go Lower");
@@ -71,7 +71,7 @@ describe("side-view lockdown", () => {
   });
 
   it("locks tracking and counts nothing while facing the camera", () => {
-    const s = run(elbows([170, 120, 85, 120, 165]).map((f) => ({ ...f, sideView: false })));
+    const s = run(Array(20).fill(elbows([170, 120, 85, 120, 165])).flat().map((f: Frame) => ({ ...f, sideView: false })));
     expect(s.reps).toBe(0);
     expect(s.status).toBe("Turn Sideways");
   });
@@ -80,18 +80,23 @@ describe("side-view lockdown", () => {
 describe("form break invalidation", () => {
   const sag = { angle: 140, break: "sag" as const };
 
-  it("voids a rep when the hips sag during the descent", () => {
-    const s = run([frame(170), frame(85), frame(100, { hip: sag }), frame(165)]);
+  const sagged = Array(20).fill(frame(100, { hip: sag, shoulderY: 0.73 }));
+  it("ignores a brief hip glitch", () => {
+    expect(run([frame(170), frame(85), frame(100, { hip: sag, shoulderY: 0.73 }), frame(100, { hip: sag, shoulderY: 0.73 }), frame(165)]).reps).toBe(1);
+  });
+
+  it("voids a rep when the hips sag for longer than the grace window", () => {
+    const s = run([frame(170), frame(85), ...sagged, frame(165)]);
     expect(s.reps).toBe(0);
   });
 
   it("reports the break while it happens", () => {
-    const s = run([frame(170), frame(85), frame(100, { hip: sag })]);
+    const s = run([frame(170), frame(85), ...sagged]);
     expect(s.status).toBe("Hips Sagging");
   });
 
   it("counts the next clean rep after a voided one", () => {
-    const s = run([frame(170), frame(85), frame(100, { hip: sag }), frame(165), frame(85), frame(165)]);
+    const s = run([frame(170), frame(85), ...sagged, frame(165), frame(85), frame(165)]);
     expect(s.reps).toBe(1);
   });
 });
@@ -99,13 +104,13 @@ describe("form break invalidation", () => {
 describe("chest depth enforcement", () => {
   const deep = (elbow: number, shoulderY: number) => frame(elbow, { shoulderY, armLength: 0.5 });
 
-  it("counts a rep whose chest drops 65% of arm length", () => {
-    const s = run([deep(170, 0.4), deep(99, 0.725), deep(165, 0.4)]);
+  it("counts a rep whose chest drops 40% of arm length", () => {
+    const s = run([deep(170, 0.4), deep(130, 0.62), deep(165, 0.4)]);
     expect(s.reps).toBe(1);
   });
 
   it("rejects a rep whose chest stays too high", () => {
-    const s = run([deep(170, 0.4), deep(85, 0.6), deep(165, 0.4)]);
+    const s = run([deep(170, 0.4), deep(85, 0.55), deep(165, 0.4)]);
     expect(s.reps).toBe(0);
     expect(s.status).toBe("Go Lower");
   });
@@ -149,7 +154,7 @@ describe("stable camera measurements", () => {
 
   it("never counts across missing pose data", () => {
     let s = run(elbows([170, 85]));
-    s = step(s, null).state;
+    for (let i = 0; i < 20; i++) s = step(s, null).state;
     expect(step(s, frame(165)).state.reps).toBe(0);
   });
 
@@ -166,7 +171,7 @@ describe("stable camera measurements", () => {
   });
 
   it("clears the orientation lock before the next clean rep", () => {
-    expect(run([frame(170, { sideView: false }), frame(170), frame(99), frame(165)]).reps).toBe(1);
+    expect(run([...Array(20).fill(frame(170, { sideView: false })), frame(170), frame(99), frame(165)]).reps).toBe(1);
   });
 
   it("counts a full landmark sequence through smoothing and measurement", () => {
