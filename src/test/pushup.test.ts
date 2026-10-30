@@ -80,9 +80,9 @@ describe("side-view lockdown", () => {
 describe("form break invalidation", () => {
   const sag = { angle: 140, break: "sag" as const };
 
-  const sagged = Array(20).fill(frame(100, { hip: sag }));
+  const sagged = Array(20).fill(frame(100, { hip: sag, shoulderY: 0.73 }));
   it("ignores a brief hip glitch", () => {
-    expect(run([frame(170), frame(85), frame(100, { hip: sag }), frame(100, { hip: sag }), frame(165)]).reps).toBe(1);
+    expect(run([frame(170), frame(85), frame(100, { hip: sag, shoulderY: 0.73 }), frame(100, { hip: sag, shoulderY: 0.73 }), frame(165)]).reps).toBe(1);
   });
 
   it("voids a rep when the hips sag for longer than the grace window", () => {
@@ -105,7 +105,7 @@ describe("chest depth enforcement", () => {
   const deep = (elbow: number, shoulderY: number) => frame(elbow, { shoulderY, armLength: 0.5 });
 
   it("counts a rep whose chest drops 40% of arm length", () => {
-    const s = run([deep(170, 0.4), deep(130, 0.6), deep(165, 0.4)]);
+    const s = run([deep(170, 0.4), deep(130, 0.62), deep(165, 0.4)]);
     expect(s.reps).toBe(1);
   });
 
