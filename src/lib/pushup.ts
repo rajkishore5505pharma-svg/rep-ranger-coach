@@ -217,6 +217,5 @@ export function step(s: RepState, f: Frame | null): { state: RepState; rep: bool
     next.status = "Good Form";
   }
   if (breakStatus && !rep) next.status = breakStatus;
-  else if (!breakStatus && (next.status === "Hips Sagging" || next.status === "Hips Piking")) next.status = "Good Form";
   return { state: next, rep };
 }
