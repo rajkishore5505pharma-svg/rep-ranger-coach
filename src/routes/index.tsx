@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Camera, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Volume2, VolumeX } from "lucide-react";
-import { createGate, cuesFor, speak } from "@/lib/voice-coach";
+import { createGate, cuesFor, speak, unlockSpeech } from "@/lib/voice-coach";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -107,6 +107,7 @@ function RageBit() {
   function toggleVoice() {
     const next = !voiceOn;
     setVoiceOn(next);
+    unlockSpeech();
     if (next) speak("Voice coach on.", voiceRef.current, true);
     else window.speechSynthesis?.cancel();
   }
@@ -252,6 +253,7 @@ function RageBit() {
 
   function toggleRun() {
     if (!running && startedAtRef.current === null) startedAtRef.current = Date.now();
+    unlockSpeech();
     // Mobile Chrome only allows speech that is first started from a tap.
     if (!running && voiceOnRef.current) speak("Let's go! Get into your plank.", voiceRef.current, true);
     setRunning((r) => !r);
