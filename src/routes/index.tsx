@@ -249,6 +249,8 @@ function RageBit() {
 
   function toggleRun() {
     if (!running && startedAtRef.current === null) startedAtRef.current = Date.now();
+    // Mobile Chrome only allows speech that is first started from a tap.
+    if (!running && voiceOnRef.current) speak("Let's go! Get into your plank.", voiceRef.current, true);
     setRunning((r) => !r);
   }
 
