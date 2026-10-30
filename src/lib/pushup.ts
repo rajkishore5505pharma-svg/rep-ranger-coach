@@ -52,6 +52,8 @@ export function measurePose(pose: (Pt | null)[]): Frame | null {
     sideView: isSideProfile(ls, rs, lh, rh),
     shoulderY: shoulder.y,
     armLength,
+    // Plank = body line closer to horizontal than vertical; standing arm bends never count.
+    horizontal: Math.abs(leg.y - shoulder.y) < Math.abs(leg.x - shoulder.x),
   };
 }
 
@@ -91,6 +93,8 @@ export type Frame = {
   sideView: boolean | null;
   shoulderY: number | null;
   armLength: number | null;
+  /** false = upright (standing/kneeling up), not in a plank. */
+  horizontal?: boolean;
 };
 
 export type RepState = {
@@ -122,7 +126,7 @@ export const initialRepState = (): RepState => ({
 
 /** Advance the counter with one frame of pose measurements. */
 export function step(s: RepState, f: Frame | null): { state: RepState; rep: boolean } {
-  if (!f || f.sideView === null || !f.hip || f.shoulderY === null || f.armLength === null) {
+  if (!f || f.sideView === null || !f.hip || f.shoulderY === null || f.armLength === null || f.horizontal === false) {
     return { state: { ...initialRepState(), reps: s.reps }, rep: false };
   }
   const next = { ...s, minAngle: Math.min(s.minAngle, f.elbow) };

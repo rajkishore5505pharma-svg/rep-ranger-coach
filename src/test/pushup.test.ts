@@ -193,3 +193,13 @@ describe("stable camera measurements", () => {
     expect(state.status).toBe("Good Form");
   });
 });
+
+import { step as step2, initialRepState as init2 } from "@/lib/pushup";
+describe("upright body", () => {
+  it("never counts reps while standing", () => {
+    let s = init2();
+    const f = (elbow: number, y: number) => ({ elbow, hip: { angle: 178, break: null }, sideView: true, shoulderY: y, armLength: 0.3, horizontal: false });
+    for (let i = 0; i < 5; i++) for (const [e, y] of [[170, 0.3], [80, 0.6], [170, 0.3]] as const) s = step2(s, f(e, y)).state;
+    expect(s.reps).toBe(0);
+  });
+});

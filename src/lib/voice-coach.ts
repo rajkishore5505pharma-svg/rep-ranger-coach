@@ -45,7 +45,9 @@ export function createGate(cooldown = COOLDOWN_MS) {
 export function speak(text: string, voice: SpeechSynthesisVoice | null, interrupt: boolean) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   const synth = window.speechSynthesis;
-  if (interrupt) synth.cancel();
+  // Chrome drops an utterance queued right after cancel(); only cancel when something is playing.
+  if (interrupt && (synth.speaking || synth.pending)) synth.cancel();
+  synth.resume();
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 1.2;
   u.pitch = 1;
