@@ -28,7 +28,7 @@ export function longestStreak(h: Workout[]) {
   const days = [...new Set(h.map((w) => dayKey(w.startedAt)))].map((d) => new Date(d).getTime()).sort((a, b) => a - b);
   let best = 0, run = 0;
   days.forEach((d, i) => {
-    run = i > 0 && Math.round((d - days[i - 1]) / 86400000) === 1 ? run + 1 : 1;
+    run = i > 0 && Math.round((d - days[i - 1]!) / 86400000) === 1 ? run + 1 : 1;
     best = Math.max(best, run);
   });
   return best;
