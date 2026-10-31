@@ -16,8 +16,8 @@ export const totalReps = (h: Workout[]) => h.reduce((n, w) => n + w.reps, 0);
 /** Current rank, next rank and progress (0..1) toward it, based on lifetime reps. */
 export function rankFor(total: number) {
   let i = 0;
-  while (i + 1 < RANKS.length && total >= RANKS[i + 1].min) i++;
-  const rank = RANKS[i], next = RANKS[i + 1] ?? null;
+  while (i + 1 < RANKS.length && total >= RANKS[i + 1]!.min) i++;
+  const rank = RANKS[i]!, next = RANKS[i + 1] ?? null;
   const progress = next ? (total - rank.min) / (next.min - rank.min) : 1;
   return { rank, next, progress, level: i + 1 };
 }
@@ -28,7 +28,7 @@ export function longestStreak(h: Workout[]) {
   const days = [...new Set(h.map((w) => dayKey(w.startedAt)))].map((d) => new Date(d).getTime()).sort((a, b) => a - b);
   let best = 0, run = 0;
   days.forEach((d, i) => {
-    run = i > 0 && Math.round((d - days[i - 1]) / 86400000) === 1 ? run + 1 : 1;
+    run = i > 0 && Math.round((d - days[i - 1]!) / 86400000) === 1 ? run + 1 : 1;
     best = Math.max(best, run);
   });
   return best;

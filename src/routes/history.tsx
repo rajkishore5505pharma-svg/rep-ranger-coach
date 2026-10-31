@@ -40,22 +40,22 @@ function History() {
         <Button variant="ghost" size="icon" asChild aria-label="Back">
           <Link to="/"><ArrowLeft /></Link>
         </Button>
-        <h1 className="text-2xl font-black italic tracking-tight">
+        <h1 className="text-2xl font-black uppercase tracking-tight">
           HISTORY
         </h1>
       </header>
 
       <div className="grid grid-cols-3 gap-2">
         {[["Workouts", items.length], ["Total reps", total], ["Best", best]].map(([l, v]) => (
-          <div key={l} className="rounded-2xl border border-border bg-card p-3 text-center">
-            <div className="text-3xl font-black tabular-nums text-primary neon-glow">{v}</div>
+          <div key={l} className="rounded-sm border border-border bg-card p-3 text-center">
+            <div className="text-3xl font-mono font-extrabold tabular-nums text-primary neon-glow">{v}</div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{l}</div>
           </div>
         ))}
       </div>
 
       {recent.length > 1 && (
-        <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+        <div className="mt-4 rounded-sm border border-border bg-card p-4">
           <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Reps per workout</div>
           <div className="flex h-28 items-end gap-1.5">
             {recent.map((w) => (
@@ -67,16 +67,16 @@ function History() {
 
       <ul className="mt-4 flex flex-col gap-2">
         {items.length === 0 && (
-          <li className="rounded-2xl border border-border bg-card p-6 text-center text-muted-foreground">
+          <li className="rounded-sm border border-border bg-card p-6 text-center text-muted-foreground">
             No workouts yet. Finish a workout and tap Save to see it here.
           </li>
         )}
         {items.map((w) => (
-          <li key={w.id} className="rounded-2xl border border-border bg-card p-4">
+          <li key={w.id} className="rounded-sm border border-border bg-card p-4">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-sm text-muted-foreground">{fmtDate(w.startedAt)} · {fmtDur(w.endedAt - w.startedAt)}</div>
-                <div className="text-3xl font-black tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span></div>
+                <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span></div>
               </div>
               <Button
                 variant="ghost"
@@ -88,12 +88,12 @@ function History() {
               </Button>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5 text-xs font-bold">
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground">Good Form ×{w.badges["Good Form"] ?? 0}</span>
-              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"] ?? 0}</span>
-              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">
+              <span className="rounded-sm bg-secondary px-2.5 py-1 text-secondary-foreground">Good Form ×{w.badges["Good Form"] ?? 0}</span>
+              <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"] ?? 0}</span>
+              <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">
                 Hips Sagging ×{(w.badges as Record<string, number>)["Hips Sagging"] ?? (w.badges as Record<string, number>)["Spine Sagging"] ?? 0}
               </span>
-              <span className="rounded-full bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Hips Piking ×{w.badges["Hips Piking"] ?? 0}</span>
+              <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Hips Piking ×{w.badges["Hips Piking"] ?? 0}</span>
             </div>
           </li>
         ))}
