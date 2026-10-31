@@ -8,10 +8,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { MIN_DEPTH, initialRepState, measurePose, smoothPose, step, type FormStatus, type Pt } from "@/lib/pushup";
 import { emptyBadges, saveWorkout, tallyBadge } from "@/lib/history";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/pushups")({
   head: () => ({
     meta: [
-      { title: "RageBit — AI Push-Up Counter & Form Tracker" },
+      { title: "Push-Up Tracker — RageBit" },
       { name: "description", content: "Count push-ups in real time with your phone camera and get live form feedback." },
       { property: "og:title", content: "RageBit — AI Push-Up Counter" },
       { property: "og:description", content: "Real-time push-up rep counting and form checks using your camera." },
@@ -274,9 +274,9 @@ function RageBit() {
     <div className="rage flex h-dvh flex-col bg-background text-foreground">
       <Toaster position="top-center" />
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
-        <span className="text-2xl font-black italic tracking-tight">
+        <Link to="/" aria-label="Home" className="text-2xl font-black italic tracking-tight">
           RAGE<span className="text-primary neon-glow">BIT</span>
-        </span>
+        </Link>
         <div className="flex items-center gap-1">
           <Button
             variant={voiceOn ? "default" : "ghost"}

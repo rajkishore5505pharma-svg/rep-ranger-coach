@@ -165,6 +165,10 @@
   --border: oklch(0.754 0.139 232.661 / 25%);
   --input: oklch(0.754 0.139 232.661 / 25%);
   --ring: oklch(0.754 0.139 232.661);
+  --gradient-hero: radial-gradient(120% 80% at 10% 0%, oklch(0.754 0.139 232.661 / 30%), transparent 60%),
+    radial-gradient(90% 70% at 100% 30%, oklch(0.723 0.192 149.579 / 22%), transparent 60%);
+  --gradient-rank: linear-gradient(90deg, var(--primary), var(--secondary));
+  --shadow-neon: 0 0 32px -8px color-mix(in oklab, var(--primary) 60%, transparent);
 }
 @utility neon-glow {
   text-shadow: 0 0 24px color-mix(in oklab, var(--primary) 70%, transparent);
