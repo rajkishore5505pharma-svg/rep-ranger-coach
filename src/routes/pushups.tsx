@@ -267,7 +267,7 @@ function RageBit() {
 
   const statusTone =
     status === "Good Form" ? "bg-secondary text-secondary-foreground"
-    : status === "Get in position" ? "bg-muted text-muted-foreground"
+    : status === "Get in position" ? "border-2 border-primary bg-background text-primary"
     : "bg-destructive text-destructive-foreground";
 
   return (
