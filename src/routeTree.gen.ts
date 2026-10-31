@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as PushupsRouteImport } from './routes/pushups'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PushupsRoute = PushupsRouteImport.update({
+  id: '/pushups',
+  path: '/pushups',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
+  '/pushups': typeof PushupsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
+  '/pushups': typeof PushupsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
+  '/pushups': typeof PushupsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/chat' | '/history' | '/api/chat'
+  fullPaths: '/' | '/chat' | '/history' | '/pushups' | '/api/chat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chat' | '/history' | '/api/chat'
-  id: '__root__' | '/' | '/chat' | '/history' | '/api/chat'
+  to: '/' | '/chat' | '/history' | '/pushups' | '/api/chat'
+  id: '__root__' | '/' | '/chat' | '/history' | '/pushups' | '/api/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChatRoute: typeof ChatRoute
   HistoryRoute: typeof HistoryRoute
+  PushupsRoute: typeof PushupsRoute
   ApiChatRoute: typeof ApiChatRoute
 }
 
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pushups': {
+      id: '/pushups'
+      path: '/pushups'
+      fullPath: '/pushups'
+      preLoaderRoute: typeof PushupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChatRoute: ChatRoute,
   HistoryRoute: HistoryRoute,
+  PushupsRoute: PushupsRoute,
   ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
