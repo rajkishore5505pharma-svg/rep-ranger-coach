@@ -40,7 +40,7 @@ function History() {
         <Button variant="ghost" size="icon" asChild aria-label="Back">
           <Link to="/"><ArrowLeft /></Link>
         </Button>
-        <h1 className="text-2xl font-black italic tracking-tight">
+        <h1 className="text-2xl font-black uppercase tracking-tight">
           HISTORY
         </h1>
       </header>
@@ -48,7 +48,7 @@ function History() {
       <div className="grid grid-cols-3 gap-2">
         {[["Workouts", items.length], ["Total reps", total], ["Best", best]].map(([l, v]) => (
           <div key={l} className="rounded-sm border border-border bg-card p-3 text-center">
-            <div className="text-3xl font-black tabular-nums text-primary neon-glow">{v}</div>
+            <div className="text-3xl font-mono font-extrabold tabular-nums text-primary neon-glow">{v}</div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{l}</div>
           </div>
         ))}
@@ -76,7 +76,7 @@ function History() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-sm text-muted-foreground">{fmtDate(w.startedAt)} · {fmtDur(w.endedAt - w.startedAt)}</div>
-                <div className="text-3xl font-black tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span></div>
+                <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span></div>
               </div>
               <Button
                 variant="ghost"

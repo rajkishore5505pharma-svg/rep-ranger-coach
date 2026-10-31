@@ -32,7 +32,7 @@ function Home() {
     <div className="rage min-h-dvh bg-background text-foreground">
       <div className="mx-auto flex max-w-md flex-col gap-6 px-5 pt-6 pb-10">
         <header className="flex items-center justify-between">
-          <span className="text-2xl font-black italic tracking-tight">
+          <span className="text-2xl font-black uppercase tracking-tight">
             RAGE<span className="text-primary neon-glow">BIT</span>
           </span>
           <div className="flex gap-1">
@@ -47,7 +47,7 @@ function Home() {
 
         <section>
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-primary">Train. Rank up. Rage.</p>
-          <h1 className="mt-2 text-5xl leading-[0.95] font-black italic tracking-tight">
+          <h1 className="mt-2 text-5xl leading-[0.95] font-black uppercase tracking-tight">
             Every rep<br />
             <span className="text-primary neon-glow">counts.</span>
           </h1>
@@ -56,17 +56,17 @@ function Home() {
 
         <section className="rounded-sm border border-border bg-card/80 p-5">
           <div className="flex items-center gap-4">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-sm" style={{ backgroundImage: "var(--gradient-rank)" }}>
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-sm bg-primary" >
               <Crown className="size-8 text-primary-foreground" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rank · Lv {level}</p>
               <p className="text-2xl font-black">{rank.name}</p>
-              <p className="text-xs text-muted-foreground tabular-nums">{total} lifetime reps</p>
+              <p className="text-xs text-muted-foreground font-mono tabular-nums">{total} lifetime reps</p>
             </div>
           </div>
-          <div className="mt-4 h-2.5 overflow-hidden rounded-sm bg-muted">
-            <div className="h-full rounded-sm transition-all" style={{ width: `${progress * 100}%`, backgroundImage: "var(--gradient-rank)" }} />
+          <div className="mt-4 h-3 overflow-hidden border border-border bg-muted">
+            <div className="h-full bg-primary transition-all" style={{ width: `${progress * 100}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground tabular-nums">
             {next ? `${next.min - total} reps to ${next.name}` : "Max rank reached. Legend."}
@@ -77,7 +77,7 @@ function Home() {
           <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Choose your workout</h2>
           <Link
             to="/pushups"
-            className="group relative overflow-hidden rounded-sm border border-primary/50 bg-card p-5 transition-transform active:scale-[0.98]"
+            className="group relative overflow-hidden rounded-sm border border-2 border-primary bg-card p-5 transition-transform active:scale-[0.98]"
            
           >
             <div className="flex items-center gap-4">

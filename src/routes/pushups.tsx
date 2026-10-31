@@ -274,7 +274,7 @@ function RageBit() {
     <div className="rage flex h-dvh flex-col bg-background text-foreground">
       <Toaster position="top-center" />
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
-        <Link to="/" aria-label="Home" className="text-2xl font-black italic tracking-tight">
+        <Link to="/" aria-label="Home" className="text-2xl font-black uppercase tracking-tight">
           RAGE<span className="text-primary neon-glow">BIT</span>
         </Link>
         <div className="flex items-center gap-1">
@@ -333,7 +333,7 @@ function RageBit() {
           <>
             <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
               <span
-                className={`rounded-sm px-3 py-1.5 text-sm font-bold uppercase tracking-wide ${statusTone} ${
+                className={`rounded-sm px-3 py-1.5 font-mono text-sm font-extrabold uppercase tracking-wider ${statusTone} ${
                   status !== "Good Form" && status !== "Get in position" ? "animate-pulse" : ""
                 }`}
               >
@@ -342,7 +342,7 @@ function RageBit() {
               <div className="flex flex-col items-end gap-1.5">
                 {elbow !== null && (
                   <span className="rounded-sm bg-background/70 px-3 py-1.5 text-sm font-semibold tabular-nums">
-                    Elbow {elbow}°
+                    <span className="font-mono">Elbow {elbow}°</span>
                   </span>
                 )}
                 {hipAngle !== null && (
@@ -353,21 +353,21 @@ function RageBit() {
                         : "bg-background/70"
                     }`}
                   >
-                    Spine {hipAngle}°
+                    <span className="font-mono">Spine {hipAngle}°</span>
                   </span>
                 )}
               </div>
             </div>
             {running && (
               <div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col items-center gap-1.5" aria-label="Chest depth">
-                <div className="relative h-48 w-5 overflow-hidden rounded-sm border border-border bg-background/70">
+                <div className="relative h-52 w-6 overflow-hidden rounded-sm border-2 border-primary bg-background/80">
                   <div
-                    className={`absolute inset-x-0 top-0 transition-[height] duration-100 ${depth >= MIN_DEPTH ? "bg-secondary" : "bg-primary"}`}
+                    className="absolute inset-x-0 top-0 bg-primary"
                     style={{ height: `${Math.min(100, (depth / (MIN_DEPTH * 1.25)) * 100)}%` }}
                   />
-                  <div className="absolute inset-x-0 h-0.5 bg-foreground" style={{ top: "80%" }} />
+                  <div className="absolute inset-x-0 h-1 bg-secondary" style={{ top: "80%" }} />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Depth</span>
+                <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-primary">Depth</span>
               </div>
             )}
             {running && status === "Turn Sideways" && (
@@ -378,7 +378,7 @@ function RageBit() {
               </div>
             )}
             <div className="absolute bottom-3 left-0 right-0 text-center">
-              <div key={pulse} className="text-[7rem] leading-none font-black tabular-nums text-primary neon-glow animate-in zoom-in-75 duration-300">
+              <div key={pulse} className="font-mono text-[7rem] leading-none font-extrabold tabular-nums text-foreground animate-in zoom-in-75 duration-300">
                 {reps}
               </div>
               <div className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">
@@ -391,7 +391,7 @@ function RageBit() {
         {!camOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-6 text-center">
             <p className="text-lg font-semibold">Prop your phone on the floor, side-on to your body.</p>
-            <Button size="lg" className="h-14 rounded-sm px-8 text-base font-bold" onClick={() => startCamera()} disabled={loading}>
+            <Button size="lg" className="h-14 rounded-sm border-2 border-primary px-8 text-base font-black uppercase tracking-wider active:translate-y-0.5" onClick={() => startCamera()} disabled={loading}>
               <Camera /> {loading ? "Starting…" : "Grant Camera Access"}
             </Button>
             {error && <p className="rounded-sm bg-destructive/15 px-4 py-3 text-sm text-destructive">{error}</p>}
@@ -410,19 +410,19 @@ function RageBit() {
       </div>
 
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 p-4">
-        <Button variant="outline" size="icon" className="size-14 rounded-sm" aria-label="Reset counter" onClick={reset}>
+        <Button variant="outline" size="icon" className="size-14 rounded-sm border-2 border-primary active:translate-y-0.5 active:bg-primary active:text-primary-foreground" aria-label="Reset counter" onClick={reset}>
           <RotateCcw />
         </Button>
         <Button
           size="lg"
           variant={running ? "secondary" : "default"}
-          className="h-14 rounded-sm text-base font-bold"
+          className="h-14 rounded-sm border-2 border-primary text-base font-black uppercase tracking-wider active:translate-y-0.5"
           disabled={!camOn || loading}
           onClick={toggleRun}
         >
           {running ? <><Pause /> Pause</> : <><Play /> Start Workout</>}
         </Button>
-        <Button variant="outline" size="icon" className="size-14 rounded-sm" aria-label="Toggle sound" onClick={() => setSound((s) => !s)}>
+        <Button variant="outline" size="icon" className="size-14 rounded-sm border-2 border-primary active:translate-y-0.5 active:bg-primary active:text-primary-foreground" aria-label="Toggle sound" onClick={() => setSound((s) => !s)}>
           {sound ? <Volume2 /> : <VolumeX />}
         </Button>
       </div>
