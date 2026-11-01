@@ -25,9 +25,9 @@ describe("squat counter", () => {
   });
   it("voids a rep when the chest drops forward for longer than the grace window", () => {
     const lean = Array.from({ length: GRACE_FRAMES + 2 }, () => f(0.7, { lean: 70 }));
-    const { s, reps } = run([f(0), f(0.7), ...lean, f(0)]);
-    expect(reps).toBe(0);
-    expect(s.status).toBe("Chest Up");
+    const mid = run([f(0), f(0.7), ...lean]);
+    expect(mid.s.status).toBe("Chest Up");
+    expect(run([f(0)], mid.s).reps).toBe(0);
   });
   it("ignores a forward lean that lasts only a moment", () => {
     expect(run([f(0), f(0.7), f(0.7, { lean: 70 }), f(0.7, { lean: 70 }), f(0)]).reps).toBe(1);
