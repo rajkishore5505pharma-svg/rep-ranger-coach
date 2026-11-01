@@ -14,12 +14,21 @@ const run = (frames: SquatFrame[], s: SquatState = initialSquatState()) => {
 const squat = (depth: number, o: Partial<SquatFrame> = {}) => [f(0), f(depth / 2, o), f(depth, o), f(depth / 2, o), f(0)];
 
 describe("squat counter", () => {
-  it("counts a squat once hips drop 60% of thigh length", () => {
-    expect(SQUAT_DEPTH).toBe(0.6);
-    expect(run([...squat(0.7), ...squat(0.7)]).reps).toBe(2);
+  it("counts a squat once hips drop 45% of thigh length", () => {
+    expect(SQUAT_DEPTH).toBe(0.45);
+    expect(run([...squat(0.5), ...squat(0.5)]).reps).toBe(2);
   });
-  it("does not count a half squat and says Go Lower", () => {
-    const { s, reps } = run(squat(0.4));
+  it("counts when the knee bends past 115° even if hip drop reads short", () => {
+    expect(run([f(0), f(0.3, { knee: 105 }), f(0)]).reps).toBe(1);
+  });
+  it("counts with the far shoulder and hip hidden (true side view)", () => {
+    expect(run(squat(0.5, { sideView: true })).reps).toBe(1);
+  });
+  it("does not say Good Form before the user has stood tall", () => {
+    expect(run([f(0.3)]).s.status).toBe("Get in position");
+  });
+  it("does not count a quarter squat and says Go Lower", () => {
+    const { s, reps } = run([f(0), f(0.15), f(0.3, { knee: 130 }), f(0.15), f(0)]);
     expect(reps).toBe(0);
     expect(s.status).toBe("Go Lower");
   });
@@ -39,5 +48,19 @@ describe("squat counter", () => {
   it("never counts while lying down", () => {
     const flat = (d: number) => f(d, { upright: false });
     expect(run(Array.from({ length: 40 }, (_, i) => flat(i % 2 ? 0.8 : 0))).reps).toBe(0);
+  });
+});
+
+import { measureSquat } from "@/lib/squat";
+describe("squat measurement", () => {
+  it("treats hidden far-side landmarks as a side view", () => {
+    const pose: (null | { x: number; y: number; visibility: number })[] = Array(33).fill(null);
+    pose[11] = { x: 0.5, y: 0.2, visibility: 0.9 };
+    pose[23] = { x: 0.5, y: 0.5, visibility: 0.9 };
+    pose[25] = { x: 0.52, y: 0.75, visibility: 0.9 };
+    pose[27] = { x: 0.5, y: 0.98, visibility: 0.9 };
+    const m = measureSquat(pose);
+    expect(m?.sideView).toBe(true);
+    expect(m?.upright).toBe(true);
   });
 });
