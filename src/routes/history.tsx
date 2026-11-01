@@ -2,15 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { deleteWorkout, loadHistory, type Workout } from "@/lib/history";
+import { deleteWorkout, exerciseOf, loadHistory, type Workout } from "@/lib/history";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
       { title: "Workout History — RageBit" },
-      { name: "description", content: "Your saved push-up workouts, reps and form badges over time." },
+      { name: "description", content: "Your saved push-up and squat workouts, reps and form badges over time." },
       { property: "og:title", content: "Workout History — RageBit" },
-      { property: "og:description", content: "Track your push-up progress over time." },
+      { property: "og:description", content: "Track your push-up and squat progress over time." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -75,6 +75,7 @@ function History() {
           <li key={w.id} className="rounded-sm border border-border bg-card p-4">
             <div className="flex items-start justify-between">
               <div>
+                <div className="font-mono text-xs font-extrabold uppercase tracking-wider text-primary">{exerciseOf(w) === "squats" ? "Squats" : "Push-Ups"}</div>
                 <div className="text-sm text-muted-foreground">{fmtDate(w.startedAt)} · {fmtDur(w.endedAt - w.startedAt)}</div>
                 <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span></div>
               </div>
@@ -90,10 +91,16 @@ function History() {
             <div className="mt-2 flex flex-wrap gap-1.5 text-xs font-bold">
               <span className="rounded-sm bg-secondary px-2.5 py-1 text-secondary-foreground">Good Form ×{w.badges["Good Form"] ?? 0}</span>
               <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"] ?? 0}</span>
+              {exerciseOf(w) === "squats" ? (
+                <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Chest Up ×{w.badges["Chest Up"] ?? 0}</span>
+              ) : (
+                <>
               <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">
                 Hips Sagging ×{(w.badges as Record<string, number>)["Hips Sagging"] ?? (w.badges as Record<string, number>)["Spine Sagging"] ?? 0}
               </span>
               <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Hips Piking ×{w.badges["Hips Piking"] ?? 0}</span>
+                </>
+              )}
             </div>
           </li>
         ))}

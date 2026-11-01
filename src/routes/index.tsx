@@ -136,7 +136,17 @@ function Home() {
                 <ChevronRight className="text-primary transition-transform group-hover:translate-x-1" />
               </Link>
               <Locked icon={<Timer className="size-6" />} name="Plank" />
-              <Locked icon={<Dumbbell className="size-6" />} name="Squats" />
+              <Link
+                to="/squats"
+                className="group flex items-center gap-4 rounded-sm border-2 border-primary bg-background p-4 transition-transform active:scale-[0.98]"
+              >
+                <div className="flex size-14 items-center justify-center rounded-sm bg-primary text-primary-foreground"><Dumbbell className="size-7" /></div>
+                <div className="flex-1">
+                  <p className="font-impact text-2xl uppercase">Squats</p>
+                  <p className="text-xs text-muted-foreground">Hip depth meter · back angle · rep counter</p>
+                </div>
+                <ChevronRight className="text-primary transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
           </div>
         </div>
