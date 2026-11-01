@@ -3,9 +3,11 @@ import { GRACE_FRAMES, angle, isSideProfile, type Pt } from "./pushup";
 export type SquatStatus = "Get in position" | "Turn Sideways" | "Good Form" | "Go Lower" | "Chest Up";
 
 /** Knee angle above which the user counts as standing tall. */
-export const STAND_KNEE = 160;
-/** Hip drop relative to standing thigh length needed at the bottom (≈ hips near knee height). */
-export const SQUAT_DEPTH = 0.6;
+export const STAND_KNEE = 150;
+/** Knee angle below which the bottom is reached even if the hip drop reads short (≈ near parallel). */
+export const BOTTOM_KNEE = 115;
+/** Hip drop relative to standing thigh length needed at the bottom (about halfway to parallel). */
+export const SQUAT_DEPTH = 0.45;
 /** Hip drop below which the user is back at the top. */
 export const SQUAT_TOP = 0.2;
 /** A dip deeper than this that never reaches SQUAT_DEPTH earns "Go Lower". */
@@ -34,13 +36,14 @@ export function measureSquat(pose: (Pt | null)[]): SquatFrame | null {
   const [s, h, k, a] = left ? [11, 23, 25, 27] : [12, 24, 26, 28];
   const shoulder = pose[s], hip = pose[h], knee = pose[k], ankle = pose[a];
   const ls = pose[11], rs = pose[12], lh = pose[23], rh = pose[24];
-  if (!shoulder || !hip || !knee || !ankle || !ls || !rs || !lh || !rh) return null;
+  if (!shoulder || !hip || !knee || !ankle) return null;
   const thighLength = distance(hip, knee);
   if (thighLength < 1e-4) return null;
   return {
     knee: angle(hip, knee, ankle),
     lean: (Math.atan2(Math.abs(shoulder.x - hip.x), Math.max(1e-6, hip.y - shoulder.y)) * 180) / Math.PI,
-    sideView: isSideProfile(ls, rs, lh, rh),
+    // In a true side view the far shoulder/hip are hidden behind the body, so missing ones mean side-on.
+    sideView: ls && rs && lh && rh ? isSideProfile(ls, rs, lh, rh) : true,
     hipY: hip.y,
     thighLength,
     upright: ankle.y - shoulder.y > Math.abs(ankle.x - shoulder.x),
@@ -107,7 +110,7 @@ export function stepSquat(s: SquatState, f: SquatFrame | null): { state: SquatSt
   }
   next.depth = depth;
 
-  if (s.phase === "up" && next.ready && depth >= SQUAT_DEPTH) {
+  if (s.phase === "up" && next.ready && (depth >= SQUAT_DEPTH || (f.knee < BOTTOM_KNEE && depth >= SQUAT_SHALLOW))) {
     next.phase = "down";
     next.status = "Good Form";
   } else if (s.phase === "down" && (standing || depth < SQUAT_TOP)) {
@@ -122,7 +125,7 @@ export function stepSquat(s: SquatState, f: SquatFrame | null): { state: SquatSt
     next.status = "Go Lower";
     next.maxDepth = 0;
     next.invalid = false;
-  } else if (next.status !== "Good Form" && next.status !== "Go Lower") {
+  } else if (next.ready && next.status !== "Good Form" && next.status !== "Go Lower") {
     next.status = "Good Form";
   }
   if (leanStatus && !rep) next.status = leanStatus;
