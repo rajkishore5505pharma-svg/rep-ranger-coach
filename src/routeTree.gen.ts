@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PushupsRouteImport } from './routes/pushups'
+import { Route as SquatsRouteImport } from './routes/squats'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const PushupsRoute = PushupsRouteImport.update({
   path: '/pushups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SquatsRoute = SquatsRouteImport.update({
+  id: '/squats',
+  path: '/squats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/pushups': typeof PushupsRoute
+  '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/pushups': typeof PushupsRoute
+  '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,22 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/pushups': typeof PushupsRoute
+  '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/chat' | '/history' | '/pushups' | '/api/chat'
+  fullPaths: '/' | '/chat' | '/history' | '/pushups' | '/squats' | '/api/chat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chat' | '/history' | '/pushups' | '/api/chat'
-  id: '__root__' | '/' | '/chat' | '/history' | '/pushups' | '/api/chat'
+  to: '/' | '/chat' | '/history' | '/pushups' | '/squats' | '/api/chat'
+  id:
+    | '__root__'
+    | '/'
+    | '/chat'
+    | '/history'
+    | '/pushups'
+    | '/squats'
+    | '/api/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +92,7 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   HistoryRoute: typeof HistoryRoute
   PushupsRoute: typeof PushupsRoute
+  SquatsRoute: typeof SquatsRoute
   ApiChatRoute: typeof ApiChatRoute
 }
 
@@ -109,6 +126,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PushupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/squats': {
+      id: '/squats'
+      path: '/squats'
+      fullPath: '/squats'
+      preLoaderRoute: typeof SquatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -124,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   HistoryRoute: HistoryRoute,
   PushupsRoute: PushupsRoute,
+  SquatsRoute: SquatsRoute,
   ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport

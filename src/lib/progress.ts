@@ -1,4 +1,4 @@
-import type { Workout } from "./history";
+import { exerciseOf, type Workout } from "./history";
 
 export type Rank = { name: string; min: number };
 export const RANKS: Rank[] = [
@@ -39,14 +39,16 @@ export type Achievement = { id: string; title: string; detail: string; unlocked:
 export function achievements(h: Workout[]): Achievement[] {
   const best = Math.max(0, ...h.map((w) => w.reps));
   const total = totalReps(h);
-  const clean = h.some((w) => w.reps >= 10 && (w.badges["Hips Sagging"] ?? 0) + (w.badges["Hips Piking"] ?? 0) === 0);
+  const clean = h.some((w) => exerciseOf(w) === "pushups" && w.reps >= 10 && (w.badges["Hips Sagging"] ?? 0) + (w.badges["Hips Piking"] ?? 0) === 0);
   const streak = longestStreak(h);
+  const bestSquats = Math.max(0, ...h.filter((w) => exerciseOf(w) === "squats").map((w) => w.reps));
   return [
     { id: "first", title: "First Blood", detail: "Finish your first workout", unlocked: h.length >= 1 },
     { id: "ten", title: "Ten Pack", detail: "10 reps in one workout", unlocked: best >= 10 },
     { id: "25", title: "Quarter Century", detail: "25 reps in one workout", unlocked: best >= 25 },
     { id: "50", title: "Half Ton", detail: "50 reps in one workout", unlocked: best >= 50 },
     { id: "clean", title: "Clean Machine", detail: "10+ reps with no hip breaks", unlocked: clean },
+    { id: "legday", title: "Leg Day", detail: "20 squats in one workout", unlocked: bestSquats >= 20 },
     { id: "streak", title: "On Fire", detail: "Train 3 days in a row", unlocked: streak >= 3 },
     { id: "century", title: "Century Club", detail: "100 lifetime reps", unlocked: total >= 100 },
     { id: "thousand", title: "Iron Will", detail: "1,000 lifetime reps", unlocked: total >= 1000 },

@@ -25,3 +25,10 @@ describe("voice coach", () => {
     expect(gate(rep, 0) && gate(rep, 10)).toBe(true);
   });
 });
+
+import { SQUAT_ALERTS } from "@/lib/voice-coach";
+describe("squat voice cues", () => {
+  it("warns Chest Up for squats", () => {
+    expect(cuesFor("Good Form", "Chest Up", false, 0, SQUAT_ALERTS)[0]?.text).toBe("Chest up! Keep your back straight.");
+  });
+});

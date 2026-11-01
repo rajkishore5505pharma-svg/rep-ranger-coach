@@ -32,3 +32,15 @@ describe("achievements", () => {
     expect(unlocked([w(1, 0), w(1, 2), w(1, 4)])).not.toContain("streak");
   });
 });
+
+describe("squat achievements", () => {
+  const ids = (h: Workout[]) => achievements(h).filter((a) => a.unlocked).map((a) => a.id);
+  it("unlocks Leg Day at 20 squats in one workout", () => {
+    expect(ids([{ ...w(20), exercise: "squats" }])).toContain("legday");
+    expect(ids([{ ...w(19), exercise: "squats" }])).not.toContain("legday");
+    expect(ids([w(30)])).not.toContain("legday");
+  });
+  it("Clean Machine only counts push-up workouts", () => {
+    expect(ids([{ ...w(15), exercise: "squats" }])).not.toContain("clean");
+  });
+});
