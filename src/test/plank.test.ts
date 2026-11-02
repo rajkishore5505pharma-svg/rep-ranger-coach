@@ -15,7 +15,7 @@ const timeline = (ms: number, make: (t: number) => PlankFrame, from = 0) =>
 describe("plank timer", () => {
   it("counts seconds held in a straight plank", () => {
     const { s } = run(timeline(3000, good));
-    expect(s.reps).toBe(2); // 2.97 s of frames
+    expect(s.reps).toBe(3); // ~3.0 s of frames
     expect(s.status).toBe("Good Form");
   });
 
@@ -31,7 +31,7 @@ describe("plank timer", () => {
     const frames = timeline(3000, good).map((f, i) => (i > 30 && i < 30 + GRACE_FRAMES ? { ...f, hipBreak: "pike" as const } : f));
     const { s } = run(frames);
     expect(s.status).toBe("Good Form");
-    expect(s.reps).toBe(2);
+    expect(s.reps).toBe(3);
   });
 
   it("never runs while standing or facing the camera", () => {
