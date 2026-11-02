@@ -32,8 +32,10 @@ function History() {
   const items = filter === "all" ? all : all.filter((w) => exerciseOf(w) === filter);
   const setItems = setAll;
 
-  const total = items.reduce((n, w) => n + w.reps, 0);
-  const best = items.reduce((n, w) => Math.max(n, w.reps), 0);
+  const timed = filter === "plank";
+  const counted = timed ? items : items.filter((w) => exerciseOf(w) !== "plank");
+  const total = counted.reduce((n, w) => n + w.reps, 0);
+  const best = counted.reduce((n, w) => Math.max(n, w.reps), 0);
   const recent = [...items].slice(0, 14).reverse();
   const max = Math.max(1, ...recent.map((w) => w.reps));
 
@@ -58,7 +60,7 @@ function History() {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {[["Workouts", items.length], ["Total reps", total], ["Best", best]].map(([l, v]) => (
+        {[["Workouts", items.length], [timed ? "Total sec" : "Total reps", total], [timed ? "Best sec" : "Best", best]].map(([l, v]) => (
           <div key={l} className="rounded-sm border border-border bg-card p-3 text-center">
             <div className="text-3xl font-mono font-extrabold tabular-nums text-primary neon-glow">{v}</div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{l}</div>
@@ -103,7 +105,7 @@ function History() {
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5 text-xs font-bold">
               <span className="rounded-sm bg-secondary px-2.5 py-1 text-secondary-foreground">Good Form ×{w.badges["Good Form"] ?? 0}</span>
-              <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"] ?? 0}</span>
+              {exerciseOf(w) !== "plank" && <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Go Lower ×{w.badges["Go Lower"] ?? 0}</span>}
               {exerciseOf(w) === "squats" ? (
                 <span className="rounded-sm bg-destructive/80 px-2.5 py-1 text-destructive-foreground">Chest Up ×{w.badges["Chest Up"] ?? 0}</span>
               ) : (
