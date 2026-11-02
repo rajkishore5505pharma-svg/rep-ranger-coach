@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as PlankRouteImport } from './routes/plank'
 import { Route as PushupsRouteImport } from './routes/pushups'
 import { Route as SquatsRouteImport } from './routes/squats'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -29,6 +30,11 @@ const ChatRoute = ChatRouteImport.update({
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlankRoute = PlankRouteImport.update({
+  id: '/plank',
+  path: '/plank',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PushupsRoute = PushupsRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
+  '/plank': typeof PlankRoute
   '/pushups': typeof PushupsRoute
   '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
+  '/plank': typeof PlankRoute
   '/pushups': typeof PushupsRoute
   '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
@@ -68,20 +76,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
+  '/plank': typeof PlankRoute
   '/pushups': typeof PushupsRoute
   '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/chat' | '/history' | '/pushups' | '/squats' | '/api/chat'
+  fullPaths:
+    '/' | '/chat' | '/history' | '/plank' | '/pushups' | '/squats' | '/api/chat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chat' | '/history' | '/pushups' | '/squats' | '/api/chat'
+  to:
+    '/' | '/chat' | '/history' | '/plank' | '/pushups' | '/squats' | '/api/chat'
   id:
     | '__root__'
     | '/'
     | '/chat'
     | '/history'
+    | '/plank'
     | '/pushups'
     | '/squats'
     | '/api/chat'
@@ -91,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChatRoute: typeof ChatRoute
   HistoryRoute: typeof HistoryRoute
+  PlankRoute: typeof PlankRoute
   PushupsRoute: typeof PushupsRoute
   SquatsRoute: typeof SquatsRoute
   ApiChatRoute: typeof ApiChatRoute
@@ -117,6 +130,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plank': {
+      id: '/plank'
+      path: '/plank'
+      fullPath: '/plank'
+      preLoaderRoute: typeof PlankRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pushups': {
@@ -147,6 +167,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChatRoute: ChatRoute,
   HistoryRoute: HistoryRoute,
+  PlankRoute: PlankRoute,
   PushupsRoute: PushupsRoute,
   SquatsRoute: SquatsRoute,
   ApiChatRoute: ApiChatRoute,

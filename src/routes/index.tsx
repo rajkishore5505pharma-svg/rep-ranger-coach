@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronRight, Crown, Dumbbell, Flame, History, Lock, MessageCircle, Timer, Trophy, X, Zap } from "lucide-react";
+import { ChevronRight, Crown, Lock, Dumbbell, Flame, History, MessageCircle, Timer, Trophy, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loadHistory, type Workout } from "@/lib/history";
 import { achievements, rankFor, totalReps } from "@/lib/progress";
@@ -135,7 +135,17 @@ function Home() {
                 </div>
                 <ChevronRight className="text-primary transition-transform group-hover:translate-x-1" />
               </Link>
-              <Locked icon={<Timer className="size-6" />} name="Plank" />
+              <Link
+                to="/plank"
+                className="group flex items-center gap-4 rounded-sm border-2 border-primary bg-background p-4 transition-transform active:scale-[0.98]"
+              >
+                <div className="flex size-14 items-center justify-center rounded-sm bg-primary text-primary-foreground"><Timer className="size-7" /></div>
+                <div className="flex-1">
+                  <p className="font-impact text-2xl uppercase">Plank</p>
+                  <p className="text-xs text-muted-foreground">Hip line meter · sag/pike check · hold timer</p>
+                </div>
+                <ChevronRight className="text-primary transition-transform group-hover:translate-x-1" />
+              </Link>
               <Link
                 to="/squats"
                 className="group flex items-center gap-4 rounded-sm border-2 border-primary bg-background p-4 transition-transform active:scale-[0.98]"
@@ -155,15 +165,3 @@ function Home() {
   );
 }
 
-function Locked({ icon, name }: { icon: React.ReactNode; name: string }) {
-  return (
-    <div aria-disabled className="flex items-center gap-4 rounded-sm border-2 border-border bg-background/50 p-4 opacity-60">
-      <div className="flex size-14 items-center justify-center rounded-sm bg-muted text-muted-foreground">{icon}</div>
-      <div className="flex-1">
-        <p className="font-impact text-2xl uppercase">{name}</p>
-        <p className="font-mono text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Coming soon</p>
-      </div>
-      <Lock className="size-5 text-muted-foreground" />
-    </div>
-  );
-}

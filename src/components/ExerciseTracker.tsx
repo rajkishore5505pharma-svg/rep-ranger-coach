@@ -26,6 +26,10 @@ export type ExerciseConfig<S extends TrackerState, F> = {
   startCue: string;
   alerts: Alerts;
   depthLabel: string;
+  /** Counter unit under the big number (default "reps"). */
+  unit?: string;
+  /** Beep and speak the count only every N counts (default 1); timed holds use this. */
+  cueEvery?: number;
 };
 
 type Landmarker = { detectForVideo: (v: HTMLVideoElement, t: number) => { landmarks: Pt[][] }; close: () => void };
@@ -212,9 +216,10 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
         if (runningRef.current) {
           const r = config.step(stateRef.current, measurement);
           badgesRef.current = tallyBadge(badgesRef.current, stateRef.current.status, r.state.status);
+          const announce = r.rep && r.state.reps % (config.cueEvery ?? 1) === 0;
           if (voiceOnRef.current) {
             const now = performance.now();
-            for (const cue of cuesFor(stateRef.current.status, r.state.status, r.rep, r.state.reps, config.alerts)) {
+            for (const cue of cuesFor(stateRef.current.status, r.state.status, announce, r.state.reps, config.alerts)) {
               if (gateRef.current(cue, now)) speak(cue.text, voiceRef.current, cue.urgent);
             }
           }
@@ -224,7 +229,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
           if (r.rep) {
             setReps(r.state.reps);
             setPulse((p) => p + 1);
-            if (soundRef.current) beep();
+            if (soundRef.current && announce) beep();
           }
         }
     }
@@ -366,7 +371,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
                   />
                   <div className="absolute inset-x-0 h-1 bg-secondary" style={{ top: "80%" }} />
                 </div>
-                <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-primary">Depth</span>
+                <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-primary">{config.depthLabel}</span>
               </div>
             )}
             {running && status === "Turn Sideways" && (
@@ -381,7 +386,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
                 {reps}
               </div>
               <div className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">
-                {running ? "reps" : "paused"}
+                {running ? (config.unit ?? "reps") : "paused"}
               </div>
             </div>
           </>

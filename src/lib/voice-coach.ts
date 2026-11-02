@@ -19,6 +19,12 @@ export const SQUAT_ALERTS: Alerts = {
   "Turn Sideways": "Turn sideways to the camera.",
 };
 
+export const PLANK_ALERTS: Alerts = {
+  "Hips Sagging": "Hips up! Squeeze your glutes.",
+  "Hips Piking": "Hips down! Straight line, head to heels.",
+  "Turn Sideways": "Turn sideways to the camera.",
+};
+
 export const MILESTONES: Record<number, string> = {
   5: "Solid form, keep pushing!",
   10: "Halfway there, stay strong!",
