@@ -26,8 +26,11 @@ const fmtDur = (ms: number) => {
 };
 
 function History() {
-  const [items, setItems] = useState<Workout[]>([]);
-  useEffect(() => setItems(loadHistory()), []);
+  const [all, setAll] = useState<Workout[]>([]);
+  const [filter, setFilter] = useState<"all" | "pushups" | "squats">("all");
+  useEffect(() => setAll(loadHistory()), []);
+  const items = filter === "all" ? all : all.filter((w) => exerciseOf(w) === filter);
+  const setItems = setAll;
 
   const total = items.reduce((n, w) => n + w.reps, 0);
   const best = items.reduce((n, w) => Math.max(n, w.reps), 0);
@@ -45,6 +48,15 @@ function History() {
         </h1>
       </header>
 
+      <div className="mb-3 flex gap-2" role="tablist">
+        {([["all", "All"], ["pushups", "Push-Ups"], ["squats", "Squats"]] as const).map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
+            className={`flex-1 rounded-sm border-2 px-2 py-2 font-mono text-xs font-extrabold uppercase tracking-wider active:translate-y-px ${filter === k ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-3 gap-2">
         {[["Workouts", items.length], ["Total reps", total], ["Best", best]].map(([l, v]) => (
           <div key={l} className="rounded-sm border border-border bg-card p-3 text-center">
@@ -59,7 +71,7 @@ function History() {
           <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Reps per workout</div>
           <div className="flex h-28 items-end gap-1.5">
             {recent.map((w) => (
-              <div key={w.id} className="flex-1 rounded-t bg-primary" style={{ height: `${(w.reps / max) * 100}%`, minHeight: 4 }} />
+              <div key={w.id} className="flex-1 bg-primary" style={{ height: `${(w.reps / max) * 100}%`, minHeight: 4 }} />
             ))}
           </div>
         </div>
@@ -77,7 +89,8 @@ function History() {
               <div>
                 <div className="font-mono text-xs font-extrabold uppercase tracking-wider text-primary">{exerciseOf(w) === "squats" ? "Squats" : "Push-Ups"}</div>
                 <div className="text-sm text-muted-foreground">{fmtDate(w.startedAt)} · {fmtDur(w.endedAt - w.startedAt)}</div>
-                <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span></div>
+                <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span>
+                  {w.reps > 0 && <span className="ml-2 font-mono text-xs font-bold text-secondary">{Math.min(100, Math.round(((w.badges["Good Form"] ?? 0) / Math.max(1, Object.values(w.badges).reduce((a, b) => a + (b ?? 0), 0))) * 100))}% clean</span>}</div>
               </div>
               <Button
                 variant="ghost"

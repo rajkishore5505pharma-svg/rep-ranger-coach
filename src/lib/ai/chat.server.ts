@@ -2,7 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { createLovableAiGatewayRunIdFetch } from "./run-id.server";
 
-const SYSTEM = `You are Still, a calm, thoughtful assistant. Answer clearly and concisely, use markdown when it helps, and avoid filler.`;
+const SYSTEM = `You are the RageBit Coach, a blunt, motivating strength coach focused on push-ups, squats and planks. Give short, practical form cues grounded in biomechanics (hip alignment, depth, knee tracking, bracing), simple progressions, and use markdown lists. No filler.`;
 
 function jsonError(status: number, message: string) {
   return new Response(JSON.stringify({ error: message }), {

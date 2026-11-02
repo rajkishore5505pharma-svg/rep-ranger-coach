@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useMemo, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -22,10 +22,10 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
-      { title: "Still — a calm AI assistant" },
-      { name: "description", content: "A quiet, focused chat assistant powered by Claude." },
-      { property: "og:title", content: "Still — a calm AI assistant" },
-      { property: "og:description", content: "A quiet, focused chat assistant powered by Claude." },
+      { title: "RageBit Coach — AI Form & Strength Coach" },
+      { name: "description", content: "Ask the RageBit coach about push-up and squat form, depth and programming." },
+      { property: "og:title", content: "RageBit Coach — AI Form & Strength Coach" },
+      { property: "og:description", content: "Ask the RageBit coach about push-up and squat form, depth and programming." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -34,18 +34,13 @@ export const Route = createFileRoute("/chat")({
 });
 
 const SUGGESTIONS = [
-  "Help me plan a slow, restful weekend",
-  "Explain a hard idea in simple words",
-  "Draft a kind reply to a tricky email",
+  "How do I stop my hips sagging in push-ups?",
+  "How deep should my squats go?",
+  "Build me a 4-week push-up plan",
 ];
 
 function Mark() {
-  return (
-    <span aria-hidden className="relative inline-flex size-7 items-center justify-center">
-      <span className="absolute inset-0 rounded-full bg-primary/15" />
-      <span className="size-2.5 rounded-full bg-primary" />
-    </span>
-  );
+  return <span aria-hidden className="inline-block size-3 bg-primary" />;
 }
 
 function Index() {
@@ -72,11 +67,12 @@ function Index() {
     (status === "streaming" && last?.role === "assistant" && !last.parts.some((p) => p.type === "text" && p.text));
 
   return (
-    <div className="flex h-dvh flex-col bg-background">
+    <div className="rage flex h-dvh flex-col bg-background text-foreground">
       <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-5 pb-2">
         <div className="flex items-center gap-2.5">
+          <Button variant="ghost" size="icon" asChild aria-label="Back"><Link to="/"><ArrowLeft /></Link></Button>
           <Mark />
-          <span className="font-display text-xl tracking-tight text-foreground">Still</span>
+          <span className="font-impact text-xl uppercase tracking-wide">RageBit <span className="text-primary">Coach</span></span>
         </div>
         {messages.length > 0 && (
           <Button variant="ghost" size="sm" onClick={() => { stop(); setMessages([]); setError(null); }}>
@@ -89,15 +85,16 @@ function Index() {
         <ConversationContent className="mx-auto w-full max-w-2xl px-5">
           {messages.length === 0 ? (
             <div className="flex min-h-[55dvh] flex-col justify-center gap-6 animate-in fade-in duration-700">
-              <h1 className="font-display text-4xl leading-tight text-foreground sm:text-5xl">
-                What's on your mind?
+              <div className="font-mono text-xs font-bold uppercase tracking-widest text-primary">// Coach online</div>
+              <h1 className="font-impact text-5xl uppercase leading-none">
+                Ask the <span className="text-primary">coach.</span>
               </h1>
               <div className="flex flex-col gap-2">
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}
-                    className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="rounded-sm border-2 border-border bg-card px-4 py-3 text-left font-mono text-sm uppercase text-muted-foreground transition-colors hover:border-primary hover:text-foreground active:translate-y-px"
                   >
                     {s}
                   </button>
@@ -135,7 +132,7 @@ function Index() {
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything…"
+            placeholder="Ask about form, depth, plans…"
           />
           <PromptInputFooter className="justify-end">
             <PromptInputSubmit status={status} onStop={stop} disabled={!busy && !input.trim()} />
