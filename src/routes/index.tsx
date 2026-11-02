@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronRight, Crown, Dumbbell, Flame, History, MessageCircle, Timer, Trophy, X, Zap } from "lucide-react";
+import { ChevronRight, Crown, Lock, Dumbbell, Flame, History, MessageCircle, Timer, Trophy, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loadHistory, type Workout } from "@/lib/history";
 import { achievements, rankFor, totalReps } from "@/lib/progress";
