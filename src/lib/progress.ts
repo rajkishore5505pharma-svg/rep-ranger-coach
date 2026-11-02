@@ -11,7 +11,8 @@ export const RANKS: Rank[] = [
   { name: "Rage Legend", min: 3000 },
 ];
 
-export const totalReps = (h: Workout[]) => h.reduce((n, w) => n + w.reps, 0);
+/** Plank seconds are a hold time, not reps, so they never count toward rank. */
+export const totalReps = (h: Workout[]) => h.reduce((n, w) => n + (exerciseOf(w) === "plank" ? 0 : w.reps), 0);
 
 /** Current rank, next rank and progress (0..1) toward it, based on lifetime reps. */
 export function rankFor(total: number) {
@@ -41,6 +42,7 @@ export function achievements(h: Workout[]): Achievement[] {
   const total = totalReps(h);
   const clean = h.some((w) => exerciseOf(w) === "pushups" && w.reps >= 10 && (w.badges["Hips Sagging"] ?? 0) + (w.badges["Hips Piking"] ?? 0) === 0);
   const streak = longestStreak(h);
+  const bestPlank = Math.max(0, ...h.filter((w) => exerciseOf(w) === "plank").map((w) => w.reps));
   const bestSquats = Math.max(0, ...h.filter((w) => exerciseOf(w) === "squats").map((w) => w.reps));
   return [
     { id: "first", title: "First Blood", detail: "Finish your first workout", unlocked: h.length >= 1 },
@@ -49,6 +51,7 @@ export function achievements(h: Workout[]): Achievement[] {
     { id: "50", title: "Half Ton", detail: "50 reps in one workout", unlocked: best >= 50 },
     { id: "clean", title: "Clean Machine", detail: "10+ reps with no hip breaks", unlocked: clean },
     { id: "legday", title: "Leg Day", detail: "20 squats in one workout", unlocked: bestSquats >= 20 },
+    { id: "ironcore", title: "Iron Core", detail: "Hold a clean plank for 60 seconds", unlocked: bestPlank >= 60 },
     { id: "streak", title: "On Fire", detail: "Train 3 days in a row", unlocked: streak >= 3 },
     { id: "century", title: "Century Club", detail: "100 lifetime reps", unlocked: total >= 100 },
     { id: "thousand", title: "Iron Will", detail: "1,000 lifetime reps", unlocked: total >= 1000 },

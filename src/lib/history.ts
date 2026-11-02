@@ -1,8 +1,10 @@
 import type { FormStatus } from "./pushup";
 import type { SquatStatus } from "./squat";
+import type { PlankStatus } from "./plank";
 
-export type Exercise = "pushups" | "squats";
-export type AnyStatus = FormStatus | SquatStatus;
+export type Exercise = "pushups" | "squats" | "plank";
+/** For planks, `reps` stores seconds held with good form. */
+export type AnyStatus = FormStatus | SquatStatus | PlankStatus;
 export type BadgeCounts = { "Good Form": number; "Go Lower": number; "Hips Sagging": number; "Hips Piking": number; "Chest Up"?: number };
 /** `exercise` is missing on workouts saved before squats existed; those are push-ups. */
 export type Workout = { id: string; startedAt: number; endedAt: number; reps: number; badges: BadgeCounts; exercise?: Exercise };

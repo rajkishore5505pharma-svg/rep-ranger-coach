@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { deleteWorkout, exerciseOf, loadHistory, type Workout } from "@/lib/history";
+import { deleteWorkout, exerciseOf, loadHistory, type Exercise, type Workout } from "@/lib/history";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -27,7 +27,7 @@ const fmtDur = (ms: number) => {
 
 function History() {
   const [all, setAll] = useState<Workout[]>([]);
-  const [filter, setFilter] = useState<"all" | "pushups" | "squats">("all");
+  const [filter, setFilter] = useState<"all" | Exercise>("all");
   useEffect(() => setAll(loadHistory()), []);
   const items = filter === "all" ? all : all.filter((w) => exerciseOf(w) === filter);
   const setItems = setAll;
@@ -49,7 +49,7 @@ function History() {
       </header>
 
       <div className="mb-3 flex gap-2" role="tablist">
-        {([["all", "All"], ["pushups", "Push-Ups"], ["squats", "Squats"]] as const).map(([k, l]) => (
+        {([["all", "All"], ["pushups", "Push-Ups"], ["squats", "Squats"], ["plank", "Plank"]] as const).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
             className={`flex-1 rounded-sm border-2 px-2 py-2 font-mono text-xs font-extrabold uppercase tracking-wider active:translate-y-px ${filter === k ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
             {l}
@@ -87,9 +87,9 @@ function History() {
           <li key={w.id} className="rounded-sm border border-border bg-card p-4">
             <div className="flex items-start justify-between">
               <div>
-                <div className="font-mono text-xs font-extrabold uppercase tracking-wider text-primary">{exerciseOf(w) === "squats" ? "Squats" : "Push-Ups"}</div>
+                <div className="font-mono text-xs font-extrabold uppercase tracking-wider text-primary">{exerciseOf(w) === "squats" ? "Squats" : exerciseOf(w) === "plank" ? "Plank" : "Push-Ups"}</div>
                 <div className="text-sm text-muted-foreground">{fmtDate(w.startedAt)} · {fmtDur(w.endedAt - w.startedAt)}</div>
-                <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">reps</span>
+                <div className="text-3xl font-mono font-extrabold tabular-nums">{w.reps} <span className="text-sm font-bold text-muted-foreground">{exerciseOf(w) === "plank" ? "sec" : "reps"}</span>
                   {w.reps > 0 && <span className="ml-2 font-mono text-xs font-bold text-secondary">{Math.min(100, Math.round(((w.badges["Good Form"] ?? 0) / Math.max(1, Object.values(w.badges).reduce((a, b) => a + (b ?? 0), 0))) * 100))}% clean</span>}</div>
               </div>
               <Button
