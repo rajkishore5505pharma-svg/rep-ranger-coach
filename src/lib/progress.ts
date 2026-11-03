@@ -57,3 +57,24 @@ export function achievements(h: Workout[]): Achievement[] {
     { id: "thousand", title: "Iron Will", detail: "1,000 lifetime reps", unlocked: total >= 1000 },
   ];
 }
+
+/** Achievements unlocked by adding `w` to history `h`. */
+export function newlyUnlocked(h: Workout[], w: Workout): Achievement[] {
+  const before = new Set(achievements(h).filter((a) => a.unlocked).map((a) => a.id));
+  return achievements([w, ...h]).filter((a) => a.unlocked && !before.has(a.id));
+}
+
+/** Everything the post-workout debrief shows, derived from history before the save. */
+export function debrief(h: Workout[], w: Workout) {
+  const ex = exerciseOf(w);
+  const prevBest = Math.max(0, ...h.filter((x) => exerciseOf(x) === ex).map((x) => x.reps));
+  const before = rankFor(totalReps(h));
+  const after = rankFor(totalReps([w, ...h]));
+  return {
+    personalBest: w.reps > prevBest,
+    prevBest,
+    unlocked: newlyUnlocked(h, w),
+    rank: after,
+    rankedUp: after.level > before.level,
+  };
+}

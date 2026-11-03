@@ -38,3 +38,10 @@ export function saveWorkout(w: Workout) {
 export function deleteWorkout(id: string) {
   localStorage.setItem(KEY, JSON.stringify(loadHistory().filter((w) => w.id !== id)));
 }
+
+/** Share of shown form badges that were "Good Form", 0..100. */
+export function cleanPercent(w: Workout): number {
+  const total = Object.values(w.badges).reduce((a: number, b) => a + (b ?? 0), 0);
+  if (total === 0) return w.reps > 0 ? 100 : 0;
+  return Math.min(100, Math.round(((w.badges["Good Form"] ?? 0) / total) * 100));
+}
