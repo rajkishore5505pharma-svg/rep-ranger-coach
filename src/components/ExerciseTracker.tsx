@@ -484,7 +484,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
         <Button
           size="lg"
           variant={running ? "secondary" : "default"}
-          className="h-14 rounded-sm border-2 border-primary text-base font-black uppercase tracking-wider active:translate-y-0.5"
+          className="h-14 min-w-0 rounded-sm border-2 border-primary px-3 text-base font-black uppercase tracking-wider active:translate-y-0.5"
           disabled={!camOn || loading}
           onClick={toggleRun}
         >
