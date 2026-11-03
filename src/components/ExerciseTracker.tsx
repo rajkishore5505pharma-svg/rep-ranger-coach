@@ -435,6 +435,16 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
                 </p>
               </div>
             )}
+            {countdown !== null && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/75 text-center" aria-live="assertive">
+                <div key={countdown} className={`font-impact leading-none animate-in zoom-in-50 duration-300 ${countdown === 0 ? "text-[8rem] text-secondary" : "text-[11rem] text-primary"}`}>
+                  {countdown === 0 ? "GO!" : countdown}
+                </div>
+                <p className="mt-2 max-w-xs font-mono text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                  {config.startCue}
+                </p>
+              </div>
+            )}
             <div className="absolute bottom-3 left-0 right-0 text-center">
               <div key={pulse} className="font-mono text-[7rem] leading-none font-extrabold tabular-nums text-foreground animate-in zoom-in-75 duration-300">
                 {reps}
@@ -478,12 +488,81 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
           disabled={!camOn || loading}
           onClick={toggleRun}
         >
-          {running ? <><Pause /> Pause</> : <><Play /> Start Workout</>}
+          {running ? <><Pause /> Pause</> : countdown !== null ? <><X /> Cancel</> : <><Play /> Start Workout</>}
         </Button>
         <Button variant="outline" size="icon" className="size-14 rounded-sm border-2 border-primary active:translate-y-0.5 active:bg-primary active:text-primary-foreground" aria-label="Toggle sound" onClick={() => setSound((s) => !s)}>
           {sound ? <Volume2 /> : <VolumeX />}
         </Button>
       </div>
+
+      {summary && (
+        <div className="fixed inset-0 z-50 flex items-end bg-background/85 animate-in fade-in" role="dialog" aria-modal="true" aria-label="Workout summary">
+          <div className="w-full border-t-2 border-primary bg-card px-5 pt-3 pb-6 animate-in slide-in-from-bottom duration-300">
+            <div className="hazard -mx-5 mb-4 h-2" />
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-mono text-[10px] font-extrabold uppercase tracking-[0.3em] text-primary">Set complete</p>
+                <h2 className="font-impact text-4xl uppercase leading-none">Debrief</h2>
+              </div>
+              <Button variant="ghost" size="icon" aria-label="Close summary" onClick={() => setSummary(null)}><X /></Button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 border-2 border-border">
+              {[
+                [String(summary.workout.reps), config.unit ?? "reps"],
+                [`${summary.clean}%`, "clean form"],
+                [fmtDur(summary.workout.endedAt - summary.workout.startedAt), "time"],
+              ].map(([v, l], i) => (
+                <div key={l} className={`px-2 py-3 text-center ${i > 0 ? "border-l-2 border-border" : ""}`}>
+                  <div className={`font-mono text-3xl font-extrabold tabular-nums ${i === 1 ? (summary.clean >= 70 ? "text-secondary" : "text-destructive") : "text-foreground"}`}>{v}</div>
+                  <div className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{l}</div>
+                </div>
+              ))}
+            </div>
+
+            <ul className="mt-4 space-y-2">
+              {summary.personalBest && (
+                <li className="flex items-center gap-3 rounded-sm border-2 border-primary bg-primary/10 px-3 py-2">
+                  <Flame className="size-5 text-primary" />
+                  <span className="font-bold uppercase">New personal best</span>
+                  <span className="ml-auto font-mono text-xs text-muted-foreground">prev {summary.prevBest}</span>
+                </li>
+              )}
+              {summary.rankedUp && (
+                <li className="flex items-center gap-3 rounded-sm border-2 border-primary bg-primary/10 px-3 py-2">
+                  <Trophy className="size-5 text-primary" />
+                  <span className="font-bold uppercase">Rank up: {summary.rank.rank.name}</span>
+                </li>
+              )}
+              {summary.unlocked.map((a) => (
+                <li key={a.id} className="flex items-center gap-3 rounded-sm border-2 border-secondary bg-secondary/10 px-3 py-2">
+                  <Trophy className="size-5 text-secondary" />
+                  <div>
+                    <div className="font-bold uppercase">{a.title}</div>
+                    <div className="text-xs text-muted-foreground">{a.detail}</div>
+                  </div>
+                </li>
+              ))}
+              {!summary.personalBest && !summary.rankedUp && summary.unlocked.length === 0 && (
+                <li className="rounded-sm border-2 border-border px-3 py-2 text-sm text-muted-foreground">
+                  {summary.rank.next
+                    ? `${summary.rank.rank.name} · ${Math.round(summary.rank.progress * 100)}% to ${summary.rank.next.name}`
+                    : `${summary.rank.rank.name} · max rank`}
+                </li>
+              )}
+            </ul>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-12 rounded-sm border-2 border-border font-black uppercase tracking-wider" asChild>
+                <Link to="/history"><History /> History</Link>
+              </Button>
+              <Button className="h-12 rounded-sm border-2 border-primary font-black uppercase tracking-wider active:translate-y-0.5" onClick={() => setSummary(null)}>
+                <RotateCcw /> Go again
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
