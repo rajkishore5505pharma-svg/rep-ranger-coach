@@ -1,12 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import { Camera, Flame, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { createGate, cuesFor, speak, unlockSpeech, type Alerts } from "@/lib/voice-coach";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { smoothPose, type Pt } from "@/lib/pushup";
-import { emptyBadges, saveWorkout, tallyBadge, type AnyStatus, type Exercise } from "@/lib/history";
+import { cleanPercent, emptyBadges, loadHistory, saveWorkout, tallyBadge, type AnyStatus, type Exercise, type Workout } from "@/lib/history";
+import { debrief } from "@/lib/progress";
+
+type Debrief = ReturnType<typeof debrief> & { workout: Workout; clean: number };
+const COUNTDOWN_FROM = 3;
+const COUNT_WORDS = ["Go!", "One", "Two", "Three"];
 
 export type TrackerState = { reps: number; status: AnyStatus; depth: number };
 export type Readout = { text: string; /** Statuses that highlight this chip red. */ badOn: AnyStatus[] };
@@ -48,19 +52,33 @@ function cameraErrorMessage(e: unknown): string {
   return "Couldn't start the camera. Please try again.";
 }
 
-function beep() {
+let audioCtx: AudioContext | null = null;
+function beep(freq = 880, dur = 0.18) {
   try {
-    const ctx = new AudioContext();
+    audioCtx ??= new AudioContext();
+    const ctx = audioCtx;
+    void ctx.resume();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.25, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    o.type = "square";
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.18, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
     o.connect(g).connect(ctx.destination);
     o.start();
-    o.stop(ctx.currentTime + 0.2);
+    o.stop(ctx.currentTime + dur + 0.02);
   } catch { /* audio unavailable */ }
 }
+
+/** Phone vibration; silently ignored where unsupported (e.g. iPhone Safari). */
+function buzz(pattern: number | number[]) {
+  try { navigator.vibrate?.(pattern); } catch { /* unsupported */ }
+}
+
+const fmtDur = (ms: number) => {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 
 export function ExerciseTracker<S extends TrackerState, F>({ config }: { config: ExerciseConfig<S, F> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
