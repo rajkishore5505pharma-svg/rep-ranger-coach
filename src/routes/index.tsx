@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { loadHistory, type Workout } from "@/lib/history";
 import { achievements, rankFor, totalReps } from "@/lib/progress";
 import hero from "@/assets/gym-hero.jpg";
+import { InstallCard } from "@/components/InstallCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -88,6 +89,8 @@ function Home() {
             {next ? `${next.min - total} reps to ${next.name}` : "Max rank reached. Legend."}
           </p>
         </section>
+
+        <InstallCard />
 
         {/* Achievements */}
         <section className="flex flex-col gap-3">

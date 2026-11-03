@@ -8,7 +8,7 @@
 ## Feature push (one step per "do it")
 - [x] 1. 3-2-1 countdown before tracking + haptic buzz on reps/form warnings
 - [x] 2. Post-workout debrief card (reps, clean %, time, personal best, rank-up, new achievements)
-- [ ] 3. Install to home screen (full-screen app icon, no offline)
+- [x] 3. Install to home screen (full-screen app icon, no offline)
 - [ ] 4. Routine mode: sets x target reps with rest timer
 - [ ] 5. Daily goal + today's progress on home
 - [ ] 6. Accounts + cloud sync of history (needs Lovable Cloud)
