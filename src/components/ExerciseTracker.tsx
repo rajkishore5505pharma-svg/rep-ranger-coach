@@ -1,12 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import { Camera, Flame, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { createGate, cuesFor, speak, unlockSpeech, type Alerts } from "@/lib/voice-coach";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { smoothPose, type Pt } from "@/lib/pushup";
-import { emptyBadges, saveWorkout, tallyBadge, type AnyStatus, type Exercise } from "@/lib/history";
+import { cleanPercent, emptyBadges, loadHistory, saveWorkout, tallyBadge, type AnyStatus, type Exercise, type Workout } from "@/lib/history";
+import { debrief } from "@/lib/progress";
+
+type Debrief = ReturnType<typeof debrief> & { workout: Workout; clean: number };
+const COUNTDOWN_FROM = 3;
+const COUNT_WORDS = ["Go!", "One", "Two", "Three"];
 
 export type TrackerState = { reps: number; status: AnyStatus; depth: number };
 export type Readout = { text: string; /** Statuses that highlight this chip red. */ badOn: AnyStatus[] };
@@ -48,19 +52,33 @@ function cameraErrorMessage(e: unknown): string {
   return "Couldn't start the camera. Please try again.";
 }
 
-function beep() {
+let audioCtx: AudioContext | null = null;
+function beep(freq = 880, dur = 0.18) {
   try {
-    const ctx = new AudioContext();
+    audioCtx ??= new AudioContext();
+    const ctx = audioCtx;
+    void ctx.resume();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.25, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    o.type = "square";
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.18, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
     o.connect(g).connect(ctx.destination);
     o.start();
-    o.stop(ctx.currentTime + 0.2);
+    o.stop(ctx.currentTime + dur + 0.02);
   } catch { /* audio unavailable */ }
 }
+
+/** Phone vibration; silently ignored where unsupported (e.g. iPhone Safari). */
+function buzz(pattern: number | number[]) {
+  try { navigator.vibrate?.(pattern); } catch { /* unsupported */ }
+}
+
+const fmtDur = (ms: number) => {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 
 export function ExerciseTracker<S extends TrackerState, F>({ config }: { config: ExerciseConfig<S, F> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -87,6 +105,10 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
   const [depth, setDepth] = useState(0);
   const badgesRef = useRef(emptyBadges());
   const startedAtRef = useRef<number | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [summary, setSummary] = useState<Debrief | null>(null);
+  useEffect(() => () => { if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current); }, []);
 
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
@@ -223,12 +245,15 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
               if (gateRef.current(cue, now)) speak(cue.text, voiceRef.current, cue.urgent);
             }
           }
+          // Double buzz the moment a form warning appears, so it's felt even over gym music.
+          if (r.state.status !== stateRef.current.status && config.alerts[r.state.status]) buzz([70, 50, 70]);
           stateRef.current = r.state;
           setStatus(r.state.status);
           setDepth(r.state.depth);
           if (r.rep) {
             setReps(r.state.reps);
             setPulse((p) => p + 1);
+            if (announce) buzz(40);
             if (soundRef.current && announce) beep();
           }
         }
@@ -236,7 +261,14 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
     rafRef.current = requestAnimationFrame(loop);
   }
 
+  function stopCountdown() {
+    if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+    countdownTimerRef.current = null;
+    setCountdown(null);
+  }
+
   function reset() {
+    stopCountdown();
     stateRef.current = config.initial();
     badgesRef.current = emptyBadges();
     startedAtRef.current = null;
@@ -248,25 +280,47 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
 
   function save() {
     if (stateRef.current.reps === 0) return;
-    saveWorkout({
+    const before = loadHistory();
+    const workout: Workout = {
       id: `${Date.now()}`,
       startedAt: startedAtRef.current ?? Date.now(),
       endedAt: Date.now(),
       reps: stateRef.current.reps,
       badges: badgesRef.current,
       exercise: config.exercise,
-    });
+    };
+    saveWorkout(workout);
+    const d = debrief(before, workout);
     setRunning(false);
     reset();
-    toast.success("Workout saved to history");
+    setSummary({ ...d, workout, clean: cleanPercent(workout) });
+    buzz(d.unlocked.length || d.rankedUp || d.personalBest ? [80, 60, 80, 60, 200] : 120);
+    if (voiceOnRef.current) {
+      speak(d.rankedUp ? `Rank up! You're now ${d.rank.rank.name}.` : d.personalBest ? "New personal best!" : "Workout saved. Good work.", voiceRef.current, true);
+    }
+  }
+
+  /** One countdown second: beep, buzz, speak; at zero, tracking starts. */
+  function tick(n: number) {
+    setCountdown(n);
+    if (soundRef.current) beep(n === 0 ? 1320 : 660, n === 0 ? 0.35 : 0.15);
+    buzz(n === 0 ? 250 : 60);
+    if (voiceOnRef.current) speak(COUNT_WORDS[n] ?? String(n), voiceRef.current, true);
+    if (n === 0) {
+      if (startedAtRef.current === null) startedAtRef.current = Date.now();
+      setRunning(true);
+      countdownTimerRef.current = setTimeout(() => setCountdown(null), 700);
+      return;
+    }
+    countdownTimerRef.current = setTimeout(() => tick(n - 1), 1000);
   }
 
   function toggleRun() {
-    if (!running && startedAtRef.current === null) startedAtRef.current = Date.now();
-    unlockSpeech();
     // Mobile Chrome only allows speech that is first started from a tap.
-    if (!running && voiceOnRef.current) speak(config.startCue, voiceRef.current, true);
-    setRunning((r) => !r);
+    unlockSpeech();
+    if (running) { setRunning(false); return; }
+    if (countdown !== null) { stopCountdown(); return; }
+    tick(COUNTDOWN_FROM);
   }
 
   function flip() {
@@ -381,6 +435,16 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
                 </p>
               </div>
             )}
+            {countdown !== null && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/75 text-center" aria-live="assertive">
+                <div key={countdown} className={`font-impact leading-none animate-in zoom-in-50 duration-300 ${countdown === 0 ? "text-[8rem] text-secondary" : "text-[11rem] text-primary"}`}>
+                  {countdown === 0 ? "GO!" : countdown}
+                </div>
+                <p className="mt-2 max-w-xs font-mono text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                  {config.startCue}
+                </p>
+              </div>
+            )}
             <div className="absolute bottom-3 left-0 right-0 text-center">
               <div key={pulse} className="font-mono text-[7rem] leading-none font-extrabold tabular-nums text-foreground animate-in zoom-in-75 duration-300">
                 {reps}
@@ -420,16 +484,85 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
         <Button
           size="lg"
           variant={running ? "secondary" : "default"}
-          className="h-14 rounded-sm border-2 border-primary text-base font-black uppercase tracking-wider active:translate-y-0.5"
+          className="h-14 min-w-0 rounded-sm border-2 border-primary px-3 text-base font-black uppercase tracking-wider active:translate-y-0.5"
           disabled={!camOn || loading}
           onClick={toggleRun}
         >
-          {running ? <><Pause /> Pause</> : <><Play /> Start Workout</>}
+          {running ? <><Pause /> Pause</> : countdown !== null ? <><X /> Cancel</> : <><Play /> Start Workout</>}
         </Button>
         <Button variant="outline" size="icon" className="size-14 rounded-sm border-2 border-primary active:translate-y-0.5 active:bg-primary active:text-primary-foreground" aria-label="Toggle sound" onClick={() => setSound((s) => !s)}>
           {sound ? <Volume2 /> : <VolumeX />}
         </Button>
       </div>
+
+      {summary && (
+        <div className="fixed inset-0 z-50 flex items-end bg-background/85 animate-in fade-in" role="dialog" aria-modal="true" aria-label="Workout summary">
+          <div className="w-full border-t-2 border-primary bg-card px-5 pt-3 pb-6 animate-in slide-in-from-bottom duration-300">
+            <div className="hazard -mx-5 mb-4 h-2" />
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-mono text-[10px] font-extrabold uppercase tracking-[0.3em] text-primary">Set complete</p>
+                <h2 className="font-impact text-4xl uppercase leading-none">Debrief</h2>
+              </div>
+              <Button variant="ghost" size="icon" aria-label="Close summary" onClick={() => setSummary(null)}><X /></Button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 border-2 border-border">
+              {[
+                [String(summary.workout.reps), config.unit ?? "reps"],
+                [`${summary.clean}%`, "clean form"],
+                [fmtDur(summary.workout.endedAt - summary.workout.startedAt), "time"],
+              ].map(([v, l], i) => (
+                <div key={l} className={`px-2 py-3 text-center ${i > 0 ? "border-l-2 border-border" : ""}`}>
+                  <div className={`font-mono text-3xl font-extrabold tabular-nums ${i === 1 ? (summary.clean >= 70 ? "text-secondary" : "text-destructive") : "text-foreground"}`}>{v}</div>
+                  <div className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{l}</div>
+                </div>
+              ))}
+            </div>
+
+            <ul className="mt-4 space-y-2">
+              {summary.personalBest && (
+                <li className="flex items-center gap-3 rounded-sm border-2 border-primary bg-primary/10 px-3 py-2">
+                  <Flame className="size-5 text-primary" />
+                  <span className="font-bold uppercase">New personal best</span>
+                  <span className="ml-auto font-mono text-xs text-muted-foreground">prev {summary.prevBest}</span>
+                </li>
+              )}
+              {summary.rankedUp && (
+                <li className="flex items-center gap-3 rounded-sm border-2 border-primary bg-primary/10 px-3 py-2">
+                  <Trophy className="size-5 text-primary" />
+                  <span className="font-bold uppercase">Rank up: {summary.rank.rank.name}</span>
+                </li>
+              )}
+              {summary.unlocked.map((a) => (
+                <li key={a.id} className="flex items-center gap-3 rounded-sm border-2 border-secondary bg-secondary/10 px-3 py-2">
+                  <Trophy className="size-5 text-secondary" />
+                  <div>
+                    <div className="font-bold uppercase">{a.title}</div>
+                    <div className="text-xs text-muted-foreground">{a.detail}</div>
+                  </div>
+                </li>
+              ))}
+              {!summary.personalBest && !summary.rankedUp && summary.unlocked.length === 0 && (
+                <li className="rounded-sm border-2 border-border px-3 py-2 text-sm text-muted-foreground">
+                  {summary.rank.next
+                    ? `${summary.rank.rank.name} · ${Math.round(summary.rank.progress * 100)}% to ${summary.rank.next.name}`
+                    : `${summary.rank.rank.name} · max rank`}
+                </li>
+              )}
+            </ul>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-12 rounded-sm border-2 border-border font-black uppercase tracking-wider" asChild>
+                <Link to="/history"><History /> History</Link>
+              </Button>
+              <Button className="h-12 rounded-sm border-2 border-primary font-black uppercase tracking-wider active:translate-y-0.5" onClick={() => setSummary(null)}>
+                <RotateCcw /> Go again
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
