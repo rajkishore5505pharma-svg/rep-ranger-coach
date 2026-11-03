@@ -13,7 +13,7 @@ describe("workout debrief", () => {
     expect(debrief([w(40, "squats")], w(15)).personalBest).toBe(true);
   });
   it("lists achievements unlocked by this workout only", () => {
-    expect(debrief([], w(10)).unlocked.map((a) => a.id)).toEqual(["first", "ten"]);
+    expect(debrief([], w(10)).unlocked.map((a) => a.id)).toEqual(["first", "ten", "clean"]);
     expect(debrief([w(10)], w(5)).unlocked).toEqual([]);
   });
   it("reports a rank-up when crossing 50 lifetime reps", () => {
