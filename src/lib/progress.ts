@@ -78,3 +78,35 @@ export function debrief(h: Workout[], w: Workout) {
     rankedUp: after.level > before.level,
   };
 }
+
+/** Daily goal: push-up + squat reps done today (plank seconds are tracked separately). */
+export const DEFAULT_DAILY_GOAL = 50;
+export const GOAL_STEP = 10;
+export const GOAL_MIN = 10;
+export const GOAL_MAX = 500;
+export const clampGoal = (g: number) => Math.min(GOAL_MAX, Math.max(GOAL_MIN, Math.round(g / GOAL_STEP) * GOAL_STEP));
+
+const sameDay = (a: number, b: number) => dayKey(a) === dayKey(b);
+
+/** Today's reps, plank seconds and goal progress (0..1, capped). */
+export function today(h: Workout[], goal: number, now = Date.now()) {
+  const todays = h.filter((w) => sameDay(w.startedAt, now));
+  const reps = totalReps(todays);
+  const plankSeconds = todays.filter((w) => exerciseOf(w) === "plank").reduce((n, w) => n + w.reps, 0);
+  return { reps, plankSeconds, workouts: todays.length, progress: Math.min(1, reps / goal), hit: reps >= goal, left: Math.max(0, goal - reps) };
+}
+
+/**
+ * Consecutive days the goal was hit, ending today (or yesterday, so an
+ * unfinished today doesn't break the streak until the day is over).
+ */
+export function goalStreak(h: Workout[], goal: number, now = Date.now()) {
+  const perDay = new Map<string, number>();
+  for (const w of h) if (exerciseOf(w) !== "plank") perDay.set(dayKey(w.startedAt), (perDay.get(dayKey(w.startedAt)) ?? 0) + w.reps);
+  const d = new Date(now);
+  d.setHours(12, 0, 0, 0);
+  if ((perDay.get(d.toDateString()) ?? 0) < goal) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while ((perDay.get(d.toDateString()) ?? 0) >= goal) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}

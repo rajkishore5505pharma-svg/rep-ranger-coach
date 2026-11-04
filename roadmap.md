@@ -10,6 +10,6 @@
 - [x] 2. Post-workout debrief card (reps, clean %, time, personal best, rank-up, new achievements)
 - [x] 3. Install to home screen (full-screen app icon, no offline)
 - [x] 4. Routine mode: sets x target reps with rest timer
-- [ ] 5. Daily goal + today's progress on home
+- [x] 5. Daily goal + today's progress on home
 - [ ] 6. Accounts + cloud sync of history (needs Lovable Cloud)
 - [ ] 7. Weekly leaderboard (needs step 6)
