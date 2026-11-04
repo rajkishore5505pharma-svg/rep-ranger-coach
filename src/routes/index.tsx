@@ -6,6 +6,7 @@ import { loadHistory, type Workout } from "@/lib/history";
 import { achievements, rankFor, totalReps } from "@/lib/progress";
 import hero from "@/assets/gym-hero.jpg";
 import { InstallCard } from "@/components/InstallCard";
+import { DailyGoalCard } from "@/components/DailyGoalCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -70,6 +71,8 @@ function Home() {
       </section>
 
       <div className="mx-auto flex max-w-md flex-col gap-6 px-5 pb-10">
+        <DailyGoalCard history={history} />
+
         {/* Rank */}
         <section className="rounded-sm border-2 border-border bg-card p-5">
           <div className="flex items-center gap-4">
