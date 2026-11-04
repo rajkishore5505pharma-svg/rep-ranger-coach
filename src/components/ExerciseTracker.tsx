@@ -485,7 +485,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
           <ListChecks className={`size-4 shrink-0 ${routineOn ? "text-primary" : "text-muted-foreground"}`} />
           <span className="min-w-0 flex-1 truncate font-mono text-xs font-extrabold uppercase tracking-wider">
             {routineOn
-              ? `Routine · ${routine.sets} × ${routine.target}${unitShort} · ${routine.rest}s rest`
+              ? `${routine.sets}×${routine.target}${unitShort} · ${routine.rest}s rest`
               : "Free mode · tap for sets + rest"}
           </span>
           {routineOn && (
