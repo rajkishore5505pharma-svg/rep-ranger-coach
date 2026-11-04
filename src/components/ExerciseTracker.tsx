@@ -1,14 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, Flame, History, MessageCircle, Mic, MicOff, Pause, Play, RotateCcw, Save, SwitchCamera, Trophy, Volume2, VolumeX, X } from "lucide-react";
+import { Camera, ChevronRight, Flame, History, ListChecks, MessageCircle, Mic, MicOff, Minus, Pause, Play, Plus, RotateCcw, Save, SkipForward, SwitchCamera, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { createGate, cuesFor, speak, unlockSpeech, type Alerts } from "@/lib/voice-coach";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { smoothPose, type Pt } from "@/lib/pushup";
 import { cleanPercent, emptyBadges, loadHistory, saveWorkout, tallyBadge, type AnyStatus, type Exercise, type Workout } from "@/lib/history";
 import { debrief } from "@/lib/progress";
+import { DEFAULT_ROUTINES, LIMITS, afterRep, clampRoutine, loadRoutine, restLeft, saveRoutine, type Routine } from "@/lib/routine";
 
-type Debrief = ReturnType<typeof debrief> & { workout: Workout; clean: number };
+type Debrief = ReturnType<typeof debrief> & { workout: Workout; clean: number; routineDone: boolean };
+const SET_WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const COUNTDOWN_FROM = 3;
 const COUNT_WORDS = ["Go!", "One", "Two", "Three"];
 
@@ -109,6 +111,31 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
   const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [summary, setSummary] = useState<Debrief | null>(null);
   useEffect(() => () => { if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current); }, []);
+
+  // Routine mode: sets x target with a rest timer between sets.
+  const [routineOn, setRoutineOn] = useState(false);
+  const [routine, setRoutine] = useState<Routine>(DEFAULT_ROUTINES[config.exercise]);
+  const [editingRoutine, setEditingRoutine] = useState(false);
+  const [setIndex, setSetIndex] = useState(0);
+  const [setStart, setSetStart] = useState(0);
+  const [restEnd, setRestEnd] = useState<number | null>(null);
+  const [restSecs, setRestSecs] = useState(0);
+  const routineOnRef = useRef(false);
+  const routineRef = useRef(routine);
+  const setIndexRef = useRef(0);
+  const setStartRef = useRef(0);
+  const routineLoadedRef = useRef(false);
+  useEffect(() => {
+    const saved = loadRoutine(config.exercise);
+    setRoutineOn(saved.on);
+    setRoutine(saved.routine);
+    routineLoadedRef.current = true;
+  }, [config.exercise]);
+  useEffect(() => {
+    routineOnRef.current = routineOn;
+    routineRef.current = routine;
+    if (routineLoadedRef.current) saveRoutine(config.exercise, routineOn, routine);
+  }, [routineOn, routine, config.exercise]);
 
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
@@ -255,6 +282,11 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
             setPulse((p) => p + 1);
             if (announce) buzz(40);
             if (soundRef.current && announce) beep();
+            if (routineOnRef.current) {
+              const outcome = afterRep(routineRef.current, setIndexRef.current, r.state.reps - setStartRef.current);
+              if (outcome === "rest") startRest();
+              else if (outcome === "done") save(true);
+            }
           }
         }
     }
@@ -267,8 +299,56 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
     setCountdown(null);
   }
 
+  function startRest() {
+    runningRef.current = false;
+    setRunning(false);
+    const n = setIndexRef.current + 1;
+    setRestEnd(Date.now() + routineRef.current.rest * 1000);
+    setRestSecs(routineRef.current.rest);
+    if (soundRef.current) beep(1320, 0.3);
+    buzz([100, 80, 100]);
+    if (voiceOnRef.current) speak(`Set ${SET_WORDS[n] ?? n} done. Rest ${routineRef.current.rest} seconds.`, voiceRef.current, false);
+  }
+
+  /** End the rest early or on time, then count into the next set. */
+  function nextSet() {
+    setRestEnd(null);
+    setIndexRef.current += 1;
+    setSetIndex(setIndexRef.current);
+    setStartRef.current = stateRef.current.reps;
+    setSetStart(stateRef.current.reps);
+    tick(COUNTDOWN_FROM);
+  }
+
+  const restCueRef = useRef(-1);
+  useEffect(() => {
+    if (restEnd === null) return;
+    const id = setInterval(() => {
+      const left = restLeft(restEnd, Date.now());
+      setRestSecs(left);
+      if (left === 10 && restCueRef.current !== 10) {
+        restCueRef.current = 10;
+        if (voiceOnRef.current) speak("Ten seconds. Get ready.", voiceRef.current, false);
+        buzz(60);
+      }
+      if (left === 0) { clearInterval(id); restCueRef.current = -1; nextSet(); }
+    }, 200);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restEnd]);
+
+  function clearRoutineProgress() {
+    setRestEnd(null);
+    restCueRef.current = -1;
+    setIndexRef.current = 0;
+    setStartRef.current = 0;
+    setSetIndex(0);
+    setSetStart(0);
+  }
+
   function reset() {
     stopCountdown();
+    clearRoutineProgress();
     stateRef.current = config.initial();
     badgesRef.current = emptyBadges();
     startedAtRef.current = null;
@@ -278,7 +358,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
     setDepth(0);
   }
 
-  function save() {
+  function save(routineDone = false) {
     if (stateRef.current.reps === 0) return;
     const before = loadHistory();
     const workout: Workout = {
@@ -291,12 +371,14 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
     };
     saveWorkout(workout);
     const d = debrief(before, workout);
+    runningRef.current = false;
     setRunning(false);
     reset();
-    setSummary({ ...d, workout, clean: cleanPercent(workout) });
+    setSummary({ ...d, workout, clean: cleanPercent(workout), routineDone });
     buzz(d.unlocked.length || d.rankedUp || d.personalBest ? [80, 60, 80, 60, 200] : 120);
     if (voiceOnRef.current) {
-      speak(d.rankedUp ? `Rank up! You're now ${d.rank.rank.name}.` : d.personalBest ? "New personal best!" : "Workout saved. Good work.", voiceRef.current, true);
+      const lead = routineDone ? "Routine complete! " : "";
+      speak(lead + (d.rankedUp ? `Rank up! You're now ${d.rank.rank.name}.` : d.personalBest ? "New personal best!" : routineDone ? "Good work." : "Workout saved. Good work."), voiceRef.current, !routineDone);
     }
   }
 
@@ -318,6 +400,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
   function toggleRun() {
     // Mobile Chrome only allows speech that is first started from a tap.
     unlockSpeech();
+    if (restEnd !== null) { nextSet(); return; }
     if (running) { setRunning(false); return; }
     if (countdown !== null) { stopCountdown(); return; }
     tick(COUNTDOWN_FROM);
@@ -364,7 +447,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
             </select>
           )}
           {reps > 0 && (
-            <Button variant="secondary" size="sm" className="rounded-sm font-bold" onClick={save}>
+            <Button variant="secondary" size="sm" className="rounded-sm font-bold" onClick={() => save()}>
               <Save /> Save
             </Button>
           )}
