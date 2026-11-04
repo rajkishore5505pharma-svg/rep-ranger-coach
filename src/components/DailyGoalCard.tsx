@@ -51,7 +51,7 @@ export function DailyGoalCard({ history }: { history: Workout[] }) {
           </p>
           <p className={`font-mono text-xs font-bold uppercase ${t.hit ? "text-secondary" : "text-muted-foreground"}`}>
             {t.hit ? "Goal crushed." : `${t.left} reps to go`}
-            {t.plankSeconds > 0 && <span className="text-muted-foreground"> · {t.plankSeconds}s plank</span>}
+            {t.plankSeconds > 0 && <span className="block text-muted-foreground">+ {t.plankSeconds}s plank</span>}
           </p>
         </div>
         <Button variant="ghost" size="icon" aria-label={editing ? "Done editing goal" : "Edit daily goal"} onClick={() => setEditing((e) => !e)}>
