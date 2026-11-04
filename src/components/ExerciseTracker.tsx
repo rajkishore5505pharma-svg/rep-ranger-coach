@@ -412,6 +412,16 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
     if (camOn) void startCamera(next);
   }
 
+  const unitShort = config.exercise === "plank" ? "s" : "";
+  const perSetLabel = config.exercise === "plank" ? "Seconds per set" : "Reps per set";
+  const canEditRoutine = !running && countdown === null && restEnd === null && reps === 0;
+  const shown = routineOn ? reps - setStart : reps;
+  const targetLimits = config.exercise === "plank" ? LIMITS.plankTarget : LIMITS.target;
+  const bump = (k: keyof Routine, dir: 1 | -1) => {
+    const stepBy = k === "sets" ? LIMITS.sets.step : k === "rest" ? LIMITS.rest.step : targetLimits.step;
+    setRoutine((r) => clampRoutine({ ...r, [k]: r[k] + dir * stepBy }, config.exercise));
+  };
+
   const statusTone =
     status === "Good Form" ? "bg-secondary text-secondary-foreground"
     : status === "Get in position" ? "border-2 border-primary bg-background text-primary"
@@ -462,6 +472,37 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
           </Button>
         </div>
       </header>
+
+      <button
+        type="button"
+        onClick={() => canEditRoutine && setEditingRoutine(true)}
+        aria-label={routineOn ? "Edit routine" : "Set up a routine"}
+        className={`mx-4 mb-2 flex flex-col gap-1.5 rounded-sm border-2 px-3 py-2 text-left transition-colors ${
+          routineOn ? "border-primary bg-primary/10" : "border-border bg-card"
+        } ${canEditRoutine ? "active:translate-y-0.5" : "cursor-default"}`}
+      >
+        <div className="flex items-center gap-2">
+          <ListChecks className={`size-4 shrink-0 ${routineOn ? "text-primary" : "text-muted-foreground"}`} />
+          <span className="min-w-0 flex-1 truncate font-mono text-xs font-extrabold uppercase tracking-wider">
+            {routineOn
+              ? `Routine · ${routine.sets} × ${routine.target}${unitShort} · ${routine.rest}s rest`
+              : "Free mode · tap for sets + rest"}
+          </span>
+          {routineOn && (
+            <span className="font-mono text-xs font-extrabold tabular-nums text-primary">
+              Set {Math.min(setIndex + 1, routine.sets)}/{routine.sets}
+            </span>
+          )}
+          {canEditRoutine && <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
+        </div>
+        {routineOn && (
+          <div className="flex gap-1" aria-hidden>
+            {Array.from({ length: routine.sets }, (_, i) => (
+              <div key={i} className={`h-1.5 flex-1 ${i < setIndex ? "bg-secondary" : i === setIndex ? "bg-primary" : "bg-muted"}`} />
+            ))}
+          </div>
+        )}
+      </button>
 
       <div className="relative mx-4 flex-1 overflow-hidden rounded-sm border border-border bg-card">
         <video
@@ -518,6 +559,28 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
                 </p>
               </div>
             )}
+            {restEnd !== null && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/90 p-6 text-center" aria-live="polite">
+                <div className="hazard h-2 w-24" />
+                <p className="font-mono text-xs font-extrabold uppercase tracking-[0.35em] text-secondary">
+                  Set {setIndex + 1} done · Rest
+                </p>
+                <div className={`font-mono text-[6.5rem] font-extrabold leading-none tabular-nums ${restSecs <= 10 ? "text-primary" : "text-foreground"}`}>
+                  {fmtDur(restSecs * 1000)}
+                </div>
+                <p className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Next: set {setIndex + 2} of {routine.sets} · {routine.target} {config.unit ?? "reps"}
+                </p>
+                <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+                  <Button variant="outline" className="h-12 rounded-sm border-2 border-border font-black uppercase tracking-wider active:translate-y-0.5" onClick={() => setRestEnd((e) => (e === null ? e : e + 15000))}>
+                    <Plus /> 15s
+                  </Button>
+                  <Button className="h-12 rounded-sm border-2 border-primary font-black uppercase tracking-wider active:translate-y-0.5" onClick={nextSet}>
+                    <SkipForward /> Skip
+                  </Button>
+                </div>
+              </div>
+            )}
             {countdown !== null && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/75 text-center" aria-live="assertive">
                 <div key={countdown} className={`font-impact leading-none animate-in zoom-in-50 duration-300 ${countdown === 0 ? "text-[8rem] text-secondary" : "text-[11rem] text-primary"}`}>
@@ -530,10 +593,12 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
             )}
             <div className="absolute bottom-3 left-0 right-0 text-center">
               <div key={pulse} className="font-mono text-[7rem] leading-none font-extrabold tabular-nums text-foreground animate-in zoom-in-75 duration-300">
-                {reps}
+                {shown}
               </div>
               <div className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">
-                {running ? (config.unit ?? "reps") : "paused"}
+                {routineOn
+                  ? `of ${routine.target} ${config.unit ?? "reps"}${running ? "" : " · paused"}`
+                  : running ? (config.unit ?? "reps") : "paused"}
               </div>
             </div>
           </>
@@ -571,12 +636,77 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
           disabled={!camOn || loading}
           onClick={toggleRun}
         >
-          {running ? <><Pause /> Pause</> : countdown !== null ? <><X /> Cancel</> : <><Play /> Start Workout</>}
+          {restEnd !== null ? <><SkipForward /> Skip Rest</>
+            : running ? <><Pause /> Pause</>
+            : countdown !== null ? <><X /> Cancel</>
+            : reps > 0 ? <><Play /> Resume</>
+            : <><Play /> {routineOn ? "Start Routine" : "Start Workout"}</>}
         </Button>
         <Button variant="outline" size="icon" className="size-14 rounded-sm border-2 border-primary active:translate-y-0.5 active:bg-primary active:text-primary-foreground" aria-label="Toggle sound" onClick={() => setSound((s) => !s)}>
           {sound ? <Volume2 /> : <VolumeX />}
         </Button>
       </div>
+
+      {editingRoutine && (
+        <div className="fixed inset-0 z-50 flex items-end bg-background/85 animate-in fade-in" onClick={() => setEditingRoutine(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Routine settings"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full border-t-2 border-primary bg-card px-5 pt-3 pb-6 animate-in slide-in-from-bottom duration-300"
+          >
+            <div className="hazard -mx-5 mb-4 h-2" />
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-mono text-[10px] font-extrabold uppercase tracking-[0.3em] text-primary">Mode</p>
+                <h2 className="font-impact text-4xl uppercase leading-none">Routine</h2>
+              </div>
+              <Button variant="ghost" size="icon" aria-label="Close routine settings" onClick={() => setEditingRoutine(false)}><X /></Button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 border-2 border-border" role="radiogroup" aria-label="Workout mode">
+              {([[false, "Free"], [true, "Sets + rest"]] as const).map(([on, label]) => (
+                <button
+                  key={label}
+                  role="radio"
+                  aria-checked={routineOn === on}
+                  onClick={() => setRoutineOn(on)}
+                  className={`py-3 font-mono text-sm font-extrabold uppercase tracking-wider ${routineOn === on ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {routineOn ? (
+              <div className="mt-4 flex flex-col gap-2">
+                {([
+                  ["sets", "Sets", `${routine.sets}`],
+                  ["target", perSetLabel, `${routine.target}${unitShort}`],
+                  ["rest", "Rest between sets", fmtDur(routine.rest * 1000)],
+                ] as const).map(([k, label, value]) => (
+                  <div key={k} className="flex items-center gap-3 rounded-sm border-2 border-border px-3 py-2">
+                    <span className="flex-1 text-sm font-bold uppercase">{label}</span>
+                    <Button variant="outline" size="icon" className="size-10 rounded-sm border-2 border-primary active:translate-y-0.5" aria-label={`Less ${label}`} onClick={() => bump(k, -1)}><Minus /></Button>
+                    <span className="w-14 text-center font-mono text-2xl font-extrabold tabular-nums">{value}</span>
+                    <Button variant="outline" size="icon" className="size-10 rounded-sm border-2 border-primary active:translate-y-0.5" aria-label={`More ${label}`} onClick={() => bump(k, 1)}><Plus /></Button>
+                  </div>
+                ))}
+                <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  {routine.sets * routine.target} {config.unit ?? "reps"} total. Tracking pauses for the rest timer after each set, then counts you back in.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">No target. Count as many as you can, then tap Save.</p>
+            )}
+
+            <Button className="mt-5 h-12 w-full rounded-sm border-2 border-primary font-black uppercase tracking-wider active:translate-y-0.5" onClick={() => setEditingRoutine(false)}>
+              Lock it in
+            </Button>
+          </div>
+        </div>
+      )}
 
       {summary && (
         <div className="fixed inset-0 z-50 flex items-end bg-background/85 animate-in fade-in" role="dialog" aria-modal="true" aria-label="Workout summary">
@@ -584,7 +714,7 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
             <div className="hazard -mx-5 mb-4 h-2" />
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-mono text-[10px] font-extrabold uppercase tracking-[0.3em] text-primary">Set complete</p>
+                <p className="font-mono text-[10px] font-extrabold uppercase tracking-[0.3em] text-primary">{summary.routineDone ? "Routine complete" : "Workout saved"}</p>
                 <h2 className="font-impact text-4xl uppercase leading-none">Debrief</h2>
               </div>
               <Button variant="ghost" size="icon" aria-label="Close summary" onClick={() => setSummary(null)}><X /></Button>
