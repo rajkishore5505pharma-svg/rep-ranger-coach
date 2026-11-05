@@ -14,7 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_path: string | null
+          display_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_path?: string | null
+          display_name?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_path?: string | null
+          display_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          badges: Json
+          deleted: boolean
+          ended_at: number
+          exercise: string
+          id: string
+          reps: number
+          started_at: number
+          user_id: string
+        }
+        Insert: {
+          badges?: Json
+          deleted?: boolean
+          ended_at: number
+          exercise?: string
+          id: string
+          reps: number
+          started_at: number
+          user_id: string
+        }
+        Update: {
+          badges?: Json
+          deleted?: boolean
+          ended_at?: number
+          exercise?: string
+          id?: string
+          reps?: number
+          started_at?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workouts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
