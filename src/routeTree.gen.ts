@@ -10,16 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PlankRouteImport } from './routes/plank'
 import { Route as PushupsRouteImport } from './routes/pushups'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SquatsRouteImport } from './routes/squats'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -42,6 +49,11 @@ const PushupsRoute = PushupsRouteImport.update({
   path: '/pushups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SquatsRoute = SquatsRouteImport.update({
   id: '/squats',
   path: '/squats',
@@ -55,56 +67,82 @@ const ApiChatRoute = ApiChatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/plank': typeof PlankRoute
   '/pushups': typeof PushupsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/plank': typeof PlankRoute
   '/pushups': typeof PushupsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/plank': typeof PlankRoute
   '/pushups': typeof PushupsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/squats': typeof SquatsRoute
   '/api/chat': typeof ApiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/chat' | '/history' | '/plank' | '/pushups' | '/squats' | '/api/chat'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    '/' | '/chat' | '/history' | '/plank' | '/pushups' | '/squats' | '/api/chat'
-  id:
-    | '__root__'
     | '/'
+    | '/auth'
     | '/chat'
     | '/history'
     | '/plank'
     | '/pushups'
+    | '/reset-password'
+    | '/squats'
+    | '/api/chat'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/auth'
+    | '/chat'
+    | '/history'
+    | '/plank'
+    | '/pushups'
+    | '/reset-password'
+    | '/squats'
+    | '/api/chat'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/chat'
+    | '/history'
+    | '/plank'
+    | '/pushups'
+    | '/reset-password'
     | '/squats'
     | '/api/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRoute
   HistoryRoute: typeof HistoryRoute
   PlankRoute: typeof PlankRoute
   PushupsRoute: typeof PushupsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SquatsRoute: typeof SquatsRoute
   ApiChatRoute: typeof ApiChatRoute
 }
@@ -116,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -146,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PushupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/squats': {
       id: '/squats'
       path: '/squats'
@@ -165,10 +217,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   ChatRoute: ChatRoute,
   HistoryRoute: HistoryRoute,
   PlankRoute: PlankRoute,
   PushupsRoute: PushupsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SquatsRoute: SquatsRoute,
   ApiChatRoute: ApiChatRoute,
 }
