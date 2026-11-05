@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { deleteWorkout, exerciseOf, loadHistory, type Exercise, type Workout } from "@/lib/history";
+import { HISTORY_EVENT, deleteWorkout, exerciseOf, loadHistory, type Exercise, type Workout } from "@/lib/history";
+import { useAccount } from "@/components/AccountProvider";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -28,7 +29,12 @@ const fmtDur = (ms: number) => {
 function History() {
   const [all, setAll] = useState<Workout[]>([]);
   const [filter, setFilter] = useState<"all" | Exercise>("all");
-  useEffect(() => setAll(loadHistory()), []);
+  const account = useAccount();
+  useEffect(() => {
+    const refresh = () => setAll(loadHistory()); refresh();
+    window.addEventListener(HISTORY_EVENT, refresh);
+    return () => window.removeEventListener(HISTORY_EVENT, refresh);
+  }, []);
   const items = filter === "all" ? all : all.filter((w) => exerciseOf(w) === filter);
   const setItems = setAll;
 
@@ -49,6 +55,7 @@ function History() {
           HISTORY
         </h1>
       </header>
+      <p className="mb-4 text-xs text-muted-foreground">{account.user ? account.sync === "error" ? "Saved on this device · sync pending" : account.sync === "syncing" ? "Syncing your history…" : "Private cloud history" : "Saved on this device only"} <Link to="/auth" className="text-primary underline">{account.user ? "Account" : "Sign in to sync"}</Link></p>
 
       <div className="mb-3 flex gap-2" role="tablist">
         {([["all", "All"], ["pushups", "Push-Ups"], ["squats", "Squats"], ["plank", "Plank"]] as const).map(([k, l]) => (
