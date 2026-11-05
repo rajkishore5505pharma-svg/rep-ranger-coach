@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronRight, Crown, Lock, Dumbbell, Flame, History, MessageCircle, Timer, Trophy, X, Zap } from "lucide-react";
+import { ChevronRight, Crown, Lock, Dumbbell, Flame, History, MessageCircle, Timer, Trophy, X, Zap, UserRound, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { loadHistory, type Workout } from "@/lib/history";
+import { HISTORY_EVENT, loadHistory, type Workout } from "@/lib/history";
+import { useAccount } from "@/components/AccountProvider";
 import { achievements, rankFor, totalReps } from "@/lib/progress";
 import hero from "@/assets/gym-hero.jpg";
 import { InstallCard } from "@/components/InstallCard";
@@ -25,7 +26,12 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [history, setHistory] = useState<Workout[]>([]);
   const [picking, setPicking] = useState(false);
-  useEffect(() => setHistory(loadHistory()), []);
+  const account = useAccount();
+  useEffect(() => {
+    const refresh = () => setHistory(loadHistory()); refresh();
+    window.addEventListener(HISTORY_EVENT, refresh);
+    return () => window.removeEventListener(HISTORY_EVENT, refresh);
+  }, []);
 
   const total = totalReps(history);
   const { rank, next, progress, level } = rankFor(total);
@@ -44,6 +50,9 @@ function Home() {
               RAGE<span className="text-primary">BIT</span>
             </span>
             <div className="flex gap-1">
+              <Button variant="ghost" size="icon" aria-label={account.user ? "Your account" : "Sign in"} asChild>
+                <Link to="/auth">{account.user ? <Cloud className="text-primary" /> : <UserRound />}</Link>
+              </Button>
               <Button variant="ghost" size="icon" aria-label="Workout history" asChild>
                 <Link to="/history"><History /></Link>
               </Button>

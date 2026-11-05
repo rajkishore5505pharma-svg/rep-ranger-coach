@@ -11,5 +11,5 @@
 - [x] 3. Install to home screen (full-screen app icon, no offline)
 - [x] 4. Routine mode: sets x target reps with rest timer
 - [x] 5. Daily goal + today's progress on home
-- [ ] 6. Accounts + cloud sync of history (needs Lovable Cloud)
+- [ ] 6. Accounts + cloud sync of history (in progress: display name, avatar, optional sign-in, private cloud history)
 - [ ] 7. Weekly leaderboard (needs step 6)
