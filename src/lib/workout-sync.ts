@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { acknowledgePending, exerciseOf, historyOwner, pendingWorkouts, replaceCloudHistory, type Workout } from "./history";
+import { acknowledgePending, exerciseOf, historyOwner, pendingWorkouts, replaceCloudHistory, type Exercise, type Workout } from "./history";
 
 /** RLS enforces ownership for every browser request; queues and caches are account-scoped. */
 export async function syncWorkouts(id: string) {
@@ -18,7 +18,7 @@ export async function syncWorkouts(id: string) {
       .order("started_at", { ascending: false }).order("id").range(offset, offset + 499);
     if (error) throw error;
     for (const row of data) workouts.push({ id: row.id, startedAt: row.started_at, endedAt: row.ended_at,
-      reps: row.reps, exercise: row.exercise as Workout["exercise"], badges: row.badges as Workout["badges"] });
+      reps: row.reps, exercise: row.exercise as Exercise, badges: row.badges as Workout["badges"] });
     if (data.length < 500) break;
   }
   if (historyOwner() === id) replaceCloudHistory(id, workouts);
