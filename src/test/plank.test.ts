@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialPlankState, stepPlank, straightness, PLANK_LINE, type PlankFrame } from "@/lib/plank";
+import { initialPlankState, stepPlank, straightness, PLANK_LINE, PLANK_METER_FULL, type PlankFrame } from "@/lib/plank";
 import { GRACE_FRAMES } from "@/lib/pushup";
 
 const good = (t: number): PlankFrame => ({ hipAngle: 178, hipBreak: null, sideView: true, horizontal: true, t });
@@ -41,8 +41,13 @@ describe("plank timer", () => {
     expect(front.s.status).toBe("Turn Sideways");
   });
 
-  it("meter sits on the green line at the 10° tolerance edge and is full when straight", () => {
+  it("meter fills the bar before perfect straightness so a good plank reads high", () => {
     expect(straightness(170)).toBeCloseTo(PLANK_LINE);
     expect(straightness(180)).toBeCloseTo(PLANK_LINE * 1.25);
+    // the bar is full at 1.05 straightness instead of the old 1.25
+    expect(PLANK_METER_FULL).toBeCloseTo(1.05);
+    expect(straightness(170) / PLANK_METER_FULL).toBeGreaterThanOrEqual(0.9);
+    // a clearly sagging 160° plank still reads below the 80% target line
+    expect(straightness(160) / PLANK_METER_FULL).toBeLessThan(0.8);
   });
 });

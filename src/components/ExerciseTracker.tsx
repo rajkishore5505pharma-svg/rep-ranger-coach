@@ -25,6 +25,8 @@ export type ExerciseConfig<S extends TrackerState, F> = {
   step: (s: S, f: F | null) => { state: S; rep: boolean };
   /** Depth that counts; the meter's green line sits at this value. */
   minDepth: number;
+  /** Meter look only: bar is full at `fullAt`, green line sits `linePct` down the bar. */
+  meter?: { fullAt?: number; linePct?: number };
   readouts: (f: F) => Readout[];
   /** Form break visible this frame (skeleton turns red). */
   broken: (f: F) => boolean;
@@ -416,6 +418,8 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
   const perSetLabel = config.exercise === "plank" ? "Seconds per set" : "Reps per set";
   const canEditRoutine = !running && countdown === null && restEnd === null && reps === 0;
   const shown = routineOn ? reps - setStart : reps;
+  const meterFull = config.meter?.fullAt ?? config.minDepth * 1.25;
+  const meterLinePct = config.meter?.linePct ?? 80;
   const targetLimits = config.exercise === "plank" ? LIMITS.plankTarget : LIMITS.target;
   const bump = (k: keyof Routine, dir: 1 | -1) => {
     const stepBy = k === "sets" ? LIMITS.sets.step : k === "rest" ? LIMITS.rest.step : targetLimits.step;
@@ -545,9 +549,9 @@ export function ExerciseTracker<S extends TrackerState, F>({ config }: { config:
                 <div className="relative h-52 w-6 overflow-hidden rounded-sm border-2 border-primary bg-background/80">
                   <div
                     className="absolute inset-x-0 top-0 bg-primary"
-                    style={{ height: `${Math.min(100, (depth / (config.minDepth * 1.25)) * 100)}%` }}
+                    style={{ height: `${Math.min(100, (depth / meterFull) * 100)}%` }}
                   />
-                  <div className="absolute inset-x-0 h-1 bg-secondary" style={{ top: "80%" }} />
+                  <div className="absolute inset-x-0 h-1 bg-secondary" style={{ top: `${meterLinePct}%` }} />
                 </div>
                 <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-primary">{config.depthLabel}</span>
               </div>

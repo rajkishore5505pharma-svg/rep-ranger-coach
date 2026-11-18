@@ -4,6 +4,8 @@ export type PlankStatus = "Get in position" | "Turn Sideways" | "Good Form" | "H
 
 /** Meter value where the green line sits; the meter is full at 1.25 (perfectly straight). */
 export const PLANK_LINE = 1;
+/** Straightness that fills the meter bar — lower than the old 1.25 so a good plank reads high. */
+export const PLANK_METER_FULL = PLANK_LINE * 1.05;
 /** Seconds between spoken/beeped hold counts. */
 export const PLANK_CUE_EVERY = 5;
 

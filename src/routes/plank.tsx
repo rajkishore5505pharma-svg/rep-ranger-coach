@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ExerciseTracker, type ExerciseConfig } from "@/components/ExerciseTracker";
-import { PLANK_CUE_EVERY, PLANK_LINE, initialPlankState, measurePlank, stepPlank, type PlankFrame, type PlankState } from "@/lib/plank";
+import { PLANK_CUE_EVERY, PLANK_LINE, PLANK_METER_FULL, initialPlankState, measurePlank, stepPlank, type PlankFrame, type PlankState } from "@/lib/plank";
 import { PLANK_ALERTS } from "@/lib/voice-coach";
 
 export const Route = createFileRoute("/plank")({
@@ -23,6 +23,7 @@ const PLANK: ExerciseConfig<PlankState, PlankFrame> = {
   measure: (pose) => measurePlank(pose, performance.now()),
   step: stepPlank,
   minDepth: PLANK_LINE,
+  meter: { fullAt: PLANK_METER_FULL },
   readouts: (f) => [{ text: `Spine ${Math.round(f.hipAngle)}°`, badOn: ["Hips Sagging", "Hips Piking"] }],
   broken: (f) => f.sideView === false || f.hipBreak !== null,
   setupHint: "Prop the phone on the floor about 1.5–2 m away, side-on, so your whole body from head to feet is in view.",
